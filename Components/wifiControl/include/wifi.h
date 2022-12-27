@@ -1,1 +1,1 @@
-void wifiInitSta(void);
+void InitWifiSta(void);

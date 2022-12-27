@@ -1,6 +1,8 @@
 #include "esp_wifi.h"
 #include "freertos/event_groups.h"
 #include "wifi.h"
+#include "esp_log.h"
+#include "nvs_flash.h"
 #include "../../credentials.h"
 
 const uint8_t WIFI_MAX_RETRY = 8; //Max times wifi will try to reconnect before failing
@@ -11,7 +13,7 @@ static EventGroupHandle_t wifiEventGroup; //Create variable to hold event group 
 #define WIFI_CONNECTED_BIT (1<<0) //Bit 0
 #define WIFI_FAIL_BIT (1<<1) //Bit 1
 
-static uint8_t wifiRetryNum = 3; 
+static uint8_t wifiRetryNum = 0; //Keep track of the number of times we have tried to connect to wifi
 
 
 //Handle incoming events for wifi and IP
@@ -53,11 +55,13 @@ static void eventHandler(void* arg, esp_event_base_t eventBase, int32_t eventId,
 }
 
 //Initalize wifi into station mode
-void wifiInitSta(void)
+void InitWifiSta(void)
 {
     wifiEventGroup = xEventGroupCreate(); //Create and store the event group
 
     esp_netif_init(); //Initialize the lwIP TCP/IP stack 
+
+    nvs_flash_init(); //Initialize flash to store wifi credentials
 
     esp_event_loop_create_default(); //Create a default event loop to listen for events
 

@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include "mqtt.h"
+#include "wifi.h"
 
 int app_main(void)
 {
+    InitWifiSta();
     initMqttClient();
 
     printf("This is a test\n\n This is a Tesf\n\n");
