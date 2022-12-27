@@ -4,9 +4,12 @@
 #include "mqtt.h"
 #include "mqtt_client.h"
 #include "esp_log.h"
+#include "linkedList.h"
 #include "../../credentials.h"
 
 esp_mqtt_client_handle_t mqttClient;
+
+const char* MQTT_TOPIC = "playerStatus";
 
 
 static void log_error_if_nonzero(const char* message, int error_code)
@@ -22,10 +25,16 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 	esp_mqtt_event_handle_t event = eventData;
 	esp_mqtt_client_handle_t client = event->client;
 	int msgId;
+	uint8_t msgNum = 0;
+
 	switch (eventId) //(esp_mqtt_event_id_t)
 	{
 	case MQTT_EVENT_CONNECTED:
 		ESP_LOGI("MQTT", "MQTT_EVENT_CONNECTED");
+
+		msgId = esp_mqtt_client_subscribe(mqttClient, MQTT_TOPIC, 0);
+		ESP_LOGI("MQTT", "sent subscribe successful, msgId=%d", msgId);
+
 		//msgId = esp_mqtt_client_subscribe(client, "/topic/qos0", 0);
 		//ESP_LOGI("MQTT", "sent subscribe successful, msgId=%d", msgId);
 
@@ -57,8 +66,13 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 		// Pass payload to JSON parser
         // Pass parsed JSON to LED updater
 
-		//printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
-		//printf("DATA=%.*s\r\n", event->data_len, event->data);
+		// if(event->topic == MQTT_TOPIC && msgNum == 0)
+		// {
+			
+		// }
+		printf("MSGID:%d\n", event->msg_id);
+		printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
+		printf("DATA=%.*s\r\n", event->data_len, event->data);
 		break;
 	case MQTT_EVENT_ERROR:
 		ESP_LOGI("MQTT", "MQTT_EVENT_ERROR");
