@@ -1,36 +1,40 @@
-// Adapted from: https://www.tutorialspoint.com/data_structures_algorithms/linked_list_program_in_c.htm#
+// Adapted from: https://www.tutorialspoint.com/data_structures_algorithms/linked_list_program_in_c.htm
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
-struct node {
-   int data;
-   int key;
-   struct node *next;
-};
+typedef struct node {
+	void* dataPtr;
+	int key;
+	struct node* next;
+} node_t, *nodePtr_t;
 
-//display the list
-void printList();
+
+////display the list
+//void printList(nodePtr_t head);
 
 //insert link at the first location
-void insertFirst(int key, int data);
+void LL_insertFirst(nodePtr_t *head, uint16_t key, void* dataPtr);
+
+//delete last item
+void LL_removeLast(nodePtr_t* head);
 
 //delete first item
-struct node* removeFirst();
+void LL_removeFirst(nodePtr_t* head);
 
 //is list empty
-bool isEmpty();
+bool LL_isEmpty(nodePtr_t head);
 
-int length();
+uint16_t LL_length(nodePtr_t head);
 
 //find a link with given key
-struct node* find(int key);
+nodePtr_t LL_find(nodePtr_t head, uint16_t key);
 
 //delete a link with given key
-struct node* remove(int key);
+void LL_removeItem(nodePtr_t* head, uint16_t key);
 
-void sort();
+//void sort(nodePtr_t head);
 
-void reverse(struct node** head_ref);
+//void reverse(nodePtr_t head);
