@@ -34,9 +34,7 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 {
 	ESP_LOGD("MQTT", "Event dispatched from event loop base=%s, eventId=%ld", base, eventId);
 	esp_mqtt_event_handle_t event = eventData;
-	esp_mqtt_client_handle_t client = event->client;
 	int msgId;
-	uint8_t msgNum = 0;
 
 	switch (eventId) //(esp_mqtt_event_id_t)
 	{
@@ -73,9 +71,6 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 	case MQTT_EVENT_DATA:
 		ESP_LOGI("MQTT", "MQTT_EVENT_DATA");
 
-
-		uint8_t* payload;
-		int payloadSize;
 		nodePtr_t resultNode;
 
 		//If MQTT data is split
