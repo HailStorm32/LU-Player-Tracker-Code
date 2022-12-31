@@ -26,7 +26,13 @@
 void LL_insertFirst(nodePtr_t* head, uint16_t key, void* dataPtr)
 {
     //create a link
-    nodePtr_t link = (nodePtr_t)malloc(sizeof(node_t));
+    nodePtr_t link = malloc(sizeof(node_t));
+
+    if(link == NULL)
+    {
+        printf("\nERROR: Unable to allocate memory for LL node\n");
+        return;
+    }
 
     link->key = key;
     link->dataPtr = dataPtr;
