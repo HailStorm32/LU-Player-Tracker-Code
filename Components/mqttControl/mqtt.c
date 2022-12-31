@@ -1,5 +1,3 @@
-#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
-
 #include <stdint.h>
 #include <stdio.h>
 #include "esp_event.h"
@@ -14,6 +12,7 @@ esp_mqtt_client_handle_t mqttClient;
 nodePtr_t linkedListHead = NULL;
 
 const char* MQTT_TOPIC = "playerStatus";
+const char* MQTT_LOG_TAG = "MQTT_Control";
 
 typedef struct msgData
 {
@@ -74,9 +73,6 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 	case MQTT_EVENT_DATA:
 		ESP_LOGI("MQTT", "MQTT_EVENT_DATA");
 
-		//TODO: 
-		// Pass payload to JSON parser
-        // Pass parsed JSON to LED updater
 
 		uint8_t* payload;
 		int payloadSize;
@@ -85,21 +81,21 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 		//If MQTT data is split
 		if (event->total_data_len > event->data_len)
 		{
-			printf("\nMessage is split: %d %d %d %d\n", event->msg_id, event->total_data_len , event->data_len, event->topic_len); //DEBUG
-
+			ESP_LOGD(MQTT_LOG_TAG, "Message is split: %d %d %d %d", event->msg_id, event->total_data_len , event->data_len, event->topic_len);
+			
 			//See if we already have part of the message
 			resultNode = LL_find(linkedListHead, event->msg_id);
 
 			//If we dont have the part of the message, create an entry
 			if (resultNode == NULL)
 			{
-				printf("\nCreating new LL node\n"); //DEBUG
+				ESP_LOGD(MQTT_LOG_TAG, "Creating new LL node");
 
 				msgDataPtr_t msgData = malloc(sizeof(msgData_t));
 				
 				if(msgData == NULL)
     			{
-       				ESP_LOGE("MQTT", "\nERROR: Unable to allocate memory for MQTT LL data\n");
+       				ESP_LOGE(MQTT_LOG_TAG, "ERROR: Unable to allocate memory for MQTT LL data");
         			return;
    				}
 
@@ -110,7 +106,7 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 
 				if(msgData->topic == NULL || msgData->msg == NULL)
     			{
-       				ESP_LOGE("MQTT", "\nERROR: Unable to allocate memory for MQTT LL data-msg and/or data->topic\n");
+       				ESP_LOGE(MQTT_LOG_TAG, "ERROR: Unable to allocate memory for MQTT LL data-msg and/or data->topic");
         			return;
    				}
 
@@ -120,35 +116,39 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 
 				LL_insertFirst(&linkedListHead, event->msg_id, msgData);
 			}
-			else //Make sure its the same topic   //strncmp(((msgDataPtr_t)resultNode->dataPtr)->topic, event->topic, event->topic_len) == 0 //Topic isnt sent in subsequent messages
+			else   //strncmp(((msgDataPtr_t)resultNode->dataPtr)->topic, event->topic, event->topic_len) == 0 //Topic isnt sent in subsequent messages
 			{
-				printf("\nFound message in LL\n");//DEBUG
+				ESP_LOGD(MQTT_LOG_TAG, "Found message in LL");
 
 				msgDataPtr_t msgData = (msgDataPtr_t)resultNode->dataPtr;
 
 				//See if we have the full message, else add on to the nodeData
 				if (msgData->currentLength + event->data_len == event->total_data_len)
 				{
-					printf("\nHave full message\n");//DEBUG
+					ESP_LOGD(MQTT_LOG_TAG, "Have full message");
 
 					//Reallocate space to fit the next part of the message
 					msgData->msg = realloc(msgData->msg, (msgData->currentLength + event->data_len) + 1);
 					
 					if (msgData->msg == NULL)
 					{
-						ESP_LOGE("MQTT", "\nERROR: Unable to reallocate memory for MQTT LL msg data\n");
+						ESP_LOGE(MQTT_LOG_TAG, "ERROR: Unable to reallocate memory for MQTT LL msg data");
         				return;		
 					}
 
 					//Append the new message to the what we curently had
 					strncat(msgData->msg, event->data, event->data_len);
 
-					printf("\n\nData: %s\n\n", msgData->msg); //DEBUG
+					ESP_LOGD(MQTT_LOG_TAG, "Data:\n %s\n", msgData->msg);
+
+					//TODO: 
+					// Pass payload to JSON parser
+					// Pass parsed JSON to LED updater
 
 				}
 				else
 				{
-					printf("\nHave some message\n");//DEBUG
+					ESP_LOGD(MQTT_LOG_TAG, "Have some message");
 					
 					//Update length of the message we have currently
 					msgData->currentLength += event->data_len;
@@ -158,7 +158,7 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 
 					if (msgData->msg == NULL)
 					{
-						ESP_LOGE("MQTT", "\nERROR: Unable to reallocate memory for LL msg data\n");
+						ESP_LOGE(MQTT_LOG_TAG, "ERROR: Unable to reallocate memory for LL msg data");
         				return;		
 					}
 					
@@ -167,15 +167,13 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 				}
 
 			}
-			// else //If topics dont match
-			// {
-			// 	ESP_LOGW("MQTT", "\nERROR: Message id and topic missmatch\n");
-			// 	printf("dfdfdf");
-			// }
 		}
 		else
 		{
-			printf("dataPtr=%.*s\r\n", event->data_len, event->data);
+			ESP_LOGD(MQTT_LOG_TAG, "dataPtr=\n%.*s\r\n", event->data_len, event->data);
+			//TODO: 
+			// Pass payload to JSON parser
+			// Pass parsed JSON to LED updater
 		}
 
 /* 		printf("QoS: %d\n", event->qos);

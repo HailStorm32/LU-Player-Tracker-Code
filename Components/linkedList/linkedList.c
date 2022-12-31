@@ -4,8 +4,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "esp_log.h"
 #include "linkedList.h"
 
+const char* LL_LOG_TAG = "Linked_List";
 
 //display the list
 //void printList(nodePtr_t head) 
@@ -30,7 +32,7 @@ void LL_insertFirst(nodePtr_t* head, uint16_t key, void* dataPtr)
 
     if(link == NULL)
     {
-        printf("\nERROR: Unable to allocate memory for LL node\n");
+        ESP_LOGE(LL_LOG_TAG, "ERROR: Unable to allocate memory for LL node");
         return;
     }
 
