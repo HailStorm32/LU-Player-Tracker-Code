@@ -139,6 +139,7 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 					//TODO: 
 					// Pass payload to JSON parser
 					// Pass parsed JSON to LED updater
+					//Delete LL node and data
 
 				}
 				else
