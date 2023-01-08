@@ -5,14 +5,19 @@
 #include "mqtt_client.h"
 #include "esp_log.h"
 #include "linkedList.h"
+#include "ledControl.h"
 #include "../../credentials.h"
 
 
 esp_mqtt_client_handle_t mqttClient;
 nodePtr_t linkedListHead = NULL;
 
+extern QueueHandle_t mqttJsonQueue;
+
 const char* MQTT_TOPIC = "playerStatus";
 const char* MQTT_LOG_TAG = "MQTT_Control";
+
+#define NULL_CHARS 1
 
 typedef struct msgData
 {
@@ -96,8 +101,8 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 
 				msgData->msgId = event->msg_id;
 				msgData->currentLength = event->data_len;
-				msgData->topic = malloc(strlen(event->topic) + 1);
-				msgData->msg = malloc(strlen(event->data) + 1);
+				msgData->topic = malloc(strlen(event->topic) + NULL_CHARS);
+				msgData->msg = malloc(strlen(event->data) + NULL_CHARS);
 
 				if(msgData->topic == NULL || msgData->msg == NULL)
     			{
@@ -122,8 +127,11 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 				{
 					ESP_LOGD(MQTT_LOG_TAG, "Have full message");
 
+					//Update length of the message we have currently
+					msgData->currentLength += event->data_len;
+
 					//Reallocate space to fit the next part of the message
-					msgData->msg = realloc(msgData->msg, (msgData->currentLength + event->data_len) + 1);
+					msgData->msg = realloc(msgData->msg, (msgData->currentLength + event->data_len) + NULL_CHARS);
 					
 					if (msgData->msg == NULL)
 					{
@@ -136,14 +144,31 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 
 					ESP_LOGD(MQTT_LOG_TAG, "Data:\n %s\n", msgData->msg);
 
-					//TODO: 
-					// Pass payload to JSON parser
-					// Pass parsed JSON to LED updater
+					//Create pointers that will hold the struct and msg copy
+					msgInfoPtr_t msgQueueStruct = malloc(sizeof(msgInfo_t));
+					char* msgCpy = malloc(msgData->currentLength + NULL_CHARS);
+
+					if(msgQueueStruct == NULL || msgCpy == NULL)
+					{
+						ESP_LOGE(MQTT_LOG_TAG, "ERROR: Unable to allocate memory for MQTT msg struct and/or msgCpy");
+					}
+
+					//Copy over the message b/c we will be freeing up the current pointer
+					memcpy(msgCpy, msgData->msg, msgData->currentLength + NULL_CHARS);
+
+					msgQueueStruct->msgPtr = msgCpy;
+					msgQueueStruct->msgSize = msgData->currentLength;
 					
+					//Queue and send to LED control
+					if(xQueueSendToBack(mqttJsonQueue, &msgQueueStruct, 10) == errQUEUE_FULL)
+					{
+						ESP_LOGE(MQTT_LOG_TAG, "ERROR: mqttJsonQueue is full");
+					}
+					
+					//Free up the space used by the msgData struct
 					free(msgData->msg);
 					free(msgData->topic);
 					free(msgData);
-
 				}
 				else
 				{
@@ -153,7 +178,7 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 					msgData->currentLength += event->data_len;
 
 					//Reallocate space to fit the next part of the message
-					msgData->msg = realloc(msgData->msg, msgData->currentLength + 1);
+					msgData->msg = realloc(msgData->msg, msgData->currentLength + NULL_CHARS);
 
 					if (msgData->msg == NULL)
 					{
@@ -170,9 +195,27 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 		else
 		{
 			ESP_LOGD(MQTT_LOG_TAG, "dataPtr=\n%.*s\r\n", event->data_len, event->data);
-			//TODO: 
-			// Pass payload to JSON parser
-			// Pass parsed JSON to LED updater
+			
+			//Create pointers that will hold the struct and msg copy
+			msgInfoPtr_t msgQueueStruct = malloc(sizeof(msgInfo_t));
+			char* msgCpy = malloc(event->data_len + NULL_CHARS);
+
+			if(msgQueueStruct == NULL || msgCpy == NULL)
+			{
+				ESP_LOGE(MQTT_LOG_TAG, "ERROR: Unable to allocate memory for MQTT msg struct and/or msgCpy");
+			}
+
+			//Copy over the message b/c we will be freeing up the current pointer
+			memcpy(msgCpy, event->data, event->data_len);
+
+			msgQueueStruct->msgPtr = msgCpy;
+			msgQueueStruct->msgSize = event->data_len;
+
+			//Queue and send to LED control
+			if(xQueueSendToBack(mqttJsonQueue, &msgQueueStruct, 10) == errQUEUE_FULL)
+			{
+				ESP_LOGE(MQTT_LOG_TAG, "ERROR: mqttJsonQueue is full");
+			}
 		}
 
 /* 		printf("QoS: %d\n", event->qos);

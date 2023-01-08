@@ -9,4 +9,6 @@ typedef struct msgInfo
 
 int initLedControl();
 
+void ledUpdateTask();
+
 #endif
