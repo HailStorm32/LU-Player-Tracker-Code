@@ -452,20 +452,33 @@ void ledUpdateTask()
             worldPop = NULL;
        } */
         
-        for (int i = 0; i < 3; i++) {
-            for (int j = i; j < NUM_OF_LEDS; j += 3) {
-                // Build RGB pixels
-                led_strip_pixels[j * 3 + 0] = green;
-                led_strip_pixels[j * 3 + 1] = blue;
-                led_strip_pixels[j * 3 + 2] = red;
-            }
+        for (int i = 0; i < NUM_OF_LEDS * 3; i+=3) {
+            
+            // Build RGB pixels
+            led_strip_pixels[i + 0] = green;
+            led_strip_pixels[i + 1] = blue;
+            led_strip_pixels[i + 2] = red;
+            
             // Flush RGB values to LEDs
             ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
-            vTaskDelay(pdMS_TO_TICKS(100));
-            memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
-            ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
-            vTaskDelay(pdMS_TO_TICKS(100));
+            vTaskDelay(pdMS_TO_TICKS(500));
         }
+
+        for (int i = 0; i < NUM_OF_LEDS * 3; i+=3) {
+            
+            // Build RGB pixels
+            led_strip_pixels[i + 0] = 0;
+            led_strip_pixels[i + 1] = 0;
+            led_strip_pixels[i + 2] = 0;
+            
+            // Flush RGB values to LEDs
+            ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
+        memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
+        ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
+        vTaskDelay(pdMS_TO_TICKS(100));
+
     
     }
     
