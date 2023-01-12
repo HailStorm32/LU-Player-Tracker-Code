@@ -1,12 +1,29 @@
+#include <string.h>
 #include "ledControl.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "cJSON.h"
+#include "driver/rmt_tx.h"
+//#include "clk_tree_defs.h"
+#include "freertos/task.h"
+#include "iPixel.h"
 
 #define LED_UPDATE_TASK_STACK_SIZE 2048 //Bytes
 
 #define NUM_OF_WORLD_IDS 32 //All main worlds, minigames, side worlds, and 1 catch all for an unknown world ID
+
+#define NUM_OF_LEDS 15
+#define RMT_LED_STRIP_RESOLUTION_HZ 10000000 // 10MHz resolution, 1 tick = 0.1us (led strip needs a high resolution)
+#define RMT_LED_STRIP_GPIO_NUM      9
+
+rmt_channel_handle_t led_chan;
+rmt_encoder_handle_t led_encoder;
+rmt_transmit_config_t tx_config = {
+        .loop_count = 0, // no transfer loop
+    };
+
+uint8_t led_strip_pixels[NUM_OF_LEDS * 3];
 
 QueueHandle_t mqttJsonQueue;
 
@@ -25,6 +42,31 @@ int initLedControl()
         ESP_LOGE(LED_CTRL_LOG_TAG, "ERROR: Unable to create mqttJsonQueue");
         return 1;
     }
+
+    //Setup iPixel Driver
+    ESP_LOGI(LED_CTRL_LOG_TAG, "Create RMT TX channel");
+    led_chan = NULL;
+    rmt_tx_channel_config_t tx_chan_config = {
+        .clk_src = RMT_CLK_SRC_DEFAULT, // select source clock
+        .gpio_num = RMT_LED_STRIP_GPIO_NUM,
+        .mem_block_symbols = 64, // increase the block size can make the LED less flickering
+        .resolution_hz = RMT_LED_STRIP_RESOLUTION_HZ,
+        .trans_queue_depth = 4, // set the number of transactions that can be pending in the background
+    };
+    ESP_ERROR_CHECK(rmt_new_tx_channel(&tx_chan_config, &led_chan));
+
+    ESP_LOGI(LED_CTRL_LOG_TAG, "Install led strip encoder");
+    led_encoder = NULL;
+    led_strip_encoder_config_t encoder_config = {
+        .resolution = RMT_LED_STRIP_RESOLUTION_HZ,
+    };
+    ESP_ERROR_CHECK(rmt_new_led_strip_encoder(&encoder_config, &led_encoder));
+
+    ESP_LOGI(LED_CTRL_LOG_TAG, "Enable RMT TX channel");
+    ESP_ERROR_CHECK(rmt_enable(led_chan));
+
+    //ESP_LOGI(LED_CTRL_LOG_TAG, "Start LED rainbow chase");
+    
 
     xTaskCreate(ledUpdateTask, "led_update_task", LED_UPDATE_TASK_STACK_SIZE, NULL, 12, NULL);
 
@@ -55,10 +97,13 @@ void ledUpdateTask()
 
     uint8_t totalUniversePop = 0;
     bool auxWorldOccupied = false;
-
+    
+    uint32_t red = 255;
+    uint32_t green = 0;
+    uint32_t blue = 0;
     while (true)
     {
-       //Check for new JSON
+       /* //Check for new JSON
        if (xQueueReceive(mqttJsonQueue, &jsonMsgInfo, (TickType_t)25))
        {
             ESP_LOGD(LED_CTRL_LOG_TAG, "JSON from queue: \n %s\n\n", jsonMsgInfo->msgPtr);
@@ -405,7 +450,23 @@ void ledUpdateTask()
             worldID = NULL;
             worldName = NULL;
             worldPop = NULL;
-       }
+       } */
+        
+        for (int i = 0; i < 3; i++) {
+            for (int j = i; j < NUM_OF_LEDS; j += 3) {
+                // Build RGB pixels
+                led_strip_pixels[j * 3 + 0] = green;
+                led_strip_pixels[j * 3 + 1] = blue;
+                led_strip_pixels[j * 3 + 2] = red;
+            }
+            // Flush RGB values to LEDs
+            ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
+            vTaskDelay(pdMS_TO_TICKS(100));
+            memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
+            ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
+            vTaskDelay(pdMS_TO_TICKS(100));
+        }
+    
     }
     
     //If we for whatever reason exit the loop, we need to close the task
