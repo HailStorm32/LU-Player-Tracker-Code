@@ -5,7 +5,6 @@
 #include "freertos/queue.h"
 #include "cJSON.h"
 #include "driver/rmt_tx.h"
-//#include "clk_tree_defs.h"
 #include "freertos/task.h"
 #include "iPixel.h"
 
@@ -14,8 +13,10 @@
 #define NUM_OF_WORLD_IDS 32 //All main worlds, minigames, side worlds, and 1 catch all for an unknown world ID
 
 #define NUM_OF_LEDS 15
-#define RMT_LED_STRIP_RESOLUTION_HZ 10000000 // 10MHz resolution, 1 tick = 0.1us (led strip needs a high resolution)
+#define RMT_LED_STRIP_RESOLUTION_HZ 10000000 // 10MHz resolution, 1 tick = 0.1us
 #define RMT_LED_STRIP_GPIO_NUM      9
+
+#define UNIQUE_WORLD_COLORS false
 
 rmt_channel_handle_t led_chan;
 rmt_encoder_handle_t led_encoder;
@@ -27,6 +28,23 @@ uint8_t led_strip_pixels[NUM_OF_LEDS * 3];
 
 QueueHandle_t mqttJsonQueue;
 
+struct worldLed
+{
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
+    uint8_t ledArrayIndexStart;
+}veColor, agColor, nsColor, petCoveColor, gfColor, fbColor, lClubColor, 
+    ntColor, nijagoColor, cpColor, portabelloColor, moonbaseColor, robotCityColor, deepFreezeColor, starbaseColor;
+
+struct worldLed* worldLedStructArray[NUM_OF_LEDS] = {&veColor, &agColor, &petCoveColor, &gfColor, &fbColor, &nsColor, &lClubColor, 
+        &ntColor, &nijagoColor, &cpColor, &portabelloColor, &moonbaseColor, &robotCityColor, &deepFreezeColor, &starbaseColor};
+
+#define MASTER_WRLD_COLOR_RED 232
+#define MASTER_WRLD_COLOR_GREEN 138
+#define MASTER_WRLD_COLOR_BLUE 23
+#define MASTER_BRIGHTNESS .5
+
 const uint16_t auxWorldIDs[] = {
         1101, 1102, 1001, 1150, 1151, 1203, 1204, 1250, 1251, 1302, 1303, 1350, 1402, 1403, 1450, 2001
 };
@@ -35,6 +53,103 @@ const char* LED_CTRL_LOG_TAG = "LED_Control";
 
 int initLedControl()
 {
+    //Set the array index for each world LED
+    for(uint8_t ledIndex = 0; ledIndex < NUM_OF_LEDS; ledIndex++)
+    {
+        worldLedStructArray[ledIndex]->ledArrayIndexStart = ledIndex * 3;
+    }
+    
+    //World LED options
+    if (UNIQUE_WORLD_COLORS)
+    {
+        //Venture explore
+        veColor.red = 0;
+        veColor.green = 0;
+        veColor.blue = 0;
+
+        //Avant Gardens
+        agColor.red = 0;
+        agColor.green = 0;
+        agColor.blue = 0;
+        
+        //Pet Cove
+        petCoveColor.red = 0;
+        petCoveColor.green = 0;
+        petCoveColor.blue = 0;
+
+        //Gnarled Forest
+        gfColor.red = 0;
+        gfColor.green = 0;
+        gfColor.blue = 0;
+
+        //Forbidden Valley
+        fbColor.red = 0;
+        fbColor.green = 0;
+        fbColor.blue = 0;
+        
+        //Nimbus Station
+        nsColor.red = 0;
+        nsColor.green = 0;
+        nsColor.blue = 0;
+
+        //Club Station Alpha
+        lClubColor.red = 0;
+        lClubColor.green = 0;
+        lClubColor.blue = 0;
+
+        //Nexus Tower
+        ntColor.red = 0;
+        ntColor.green = 0;
+        ntColor.blue = 0;
+
+        //Ninjago
+        nijagoColor.red = 0;
+        nijagoColor.green = 0;
+        nijagoColor.blue = 0;
+
+        //Crux Prime
+        cpColor.red = 0;
+        cpColor.green = 0;
+        cpColor.blue = 0;
+        
+        //Portabello
+        portabelloColor.red = 0;
+        portabelloColor.green = 0;
+        portabelloColor.blue = 0;
+
+        //Moonbase
+        moonbaseColor.red = 0;
+        moonbaseColor.green = 0;
+        moonbaseColor.blue = 0;
+
+        //Robot City
+        robotCityColor.red = 0;
+        robotCityColor.green = 0;
+        robotCityColor.blue = 0;
+
+        //Deep Freeze
+        deepFreezeColor.red = 0;
+        deepFreezeColor.green = 0;
+        deepFreezeColor.blue = 0;
+
+        //Starbase 3001
+        starbaseColor.red = 0;
+        starbaseColor.green = 0;
+        starbaseColor.blue = 0;
+        
+
+    }
+    else
+    {
+        //Set all world LEDs to the same color
+        for (uint8_t ledIndex = 0; ledIndex < NUM_OF_LEDS; ledIndex++)
+        {
+            worldLedStructArray[ledIndex]->red = MASTER_WRLD_COLOR_RED * MASTER_BRIGHTNESS;
+            worldLedStructArray[ledIndex]->green = MASTER_WRLD_COLOR_GREEN * MASTER_BRIGHTNESS;
+            worldLedStructArray[ledIndex]->blue = MASTER_WRLD_COLOR_BLUE * MASTER_BRIGHTNESS;
+        }
+    }
+
     mqttJsonQueue = xQueueCreate(10, sizeof(msgInfoPtr_t));
 
     if(mqttJsonQueue == 0)
@@ -64,10 +179,11 @@ int initLedControl()
 
     ESP_LOGI(LED_CTRL_LOG_TAG, "Enable RMT TX channel");
     ESP_ERROR_CHECK(rmt_enable(led_chan));
-
-    //ESP_LOGI(LED_CTRL_LOG_TAG, "Start LED rainbow chase");
     
-
+    //Initalize LEDs to all off
+    memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
+    ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
+    
     xTaskCreate(ledUpdateTask, "led_update_task", LED_UPDATE_TASK_STACK_SIZE, NULL, 12, NULL);
 
     return 0;
@@ -98,9 +214,10 @@ void ledUpdateTask()
     uint8_t totalUniversePop = 0;
     bool auxWorldOccupied = false;
     
-    uint32_t red = 255;
-    uint32_t green = 0;
-    uint32_t blue = 0;
+    // uint32_t red = 0;
+    // uint32_t green = 150;
+    // uint32_t blue = 150;
+
     while (true)
     {
        /* //Check for new JSON
@@ -452,19 +569,34 @@ void ledUpdateTask()
             worldPop = NULL;
        } */
         
-        for (int i = 0; i < NUM_OF_LEDS * 3; i+=3) {
-            
-            // Build RGB pixels
-            led_strip_pixels[i + 0] = green;
-            led_strip_pixels[i + 1] = blue;
-            led_strip_pixels[i + 2] = red;
-            
+        /* for (float b = 0; b <= 1; b += .1)
+        {
+            for (int i = 0; i < NUM_OF_LEDS * 3; i += 3)
+            {
+
+                // Build RGB pixels
+                led_strip_pixels[i + 0] = MASTER_WRLD_COLOR_GREEN * b;
+                led_strip_pixels[i + 1] = MASTER_WRLD_COLOR_RED * b;
+                led_strip_pixels[i + 2] = MASTER_WRLD_COLOR_BLUE * b;
+            }
             // Flush RGB values to LEDs
             ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
-            vTaskDelay(pdMS_TO_TICKS(500));
-        }
+            vTaskDelay(pdMS_TO_TICKS(700));
+        } */
 
-        for (int i = 0; i < NUM_OF_LEDS * 3; i+=3) {
+        //--------------------
+        for (uint8_t ledIndex = 0; ledIndex < NUM_OF_LEDS; ledIndex++)
+        {
+            led_strip_pixels[worldLedStructArray[ledIndex]->ledArrayIndexStart + 0] = MASTER_WRLD_COLOR_GREEN * .2;
+            led_strip_pixels[worldLedStructArray[ledIndex]->ledArrayIndexStart + 1] = MASTER_WRLD_COLOR_RED * .2;
+            led_strip_pixels[worldLedStructArray[ledIndex]->ledArrayIndexStart + 2] = MASTER_WRLD_COLOR_BLUE * .2;
+            ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
+            vTaskDelay(pdMS_TO_TICKS(2000));
+        }
+        ///----------------------
+
+
+        /* for (int i = 0; i < NUM_OF_LEDS * 3; i+=3) {
             
             // Build RGB pixels
             led_strip_pixels[i + 0] = 0;
@@ -474,10 +606,10 @@ void ledUpdateTask()
             // Flush RGB values to LEDs
             ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
             vTaskDelay(pdMS_TO_TICKS(500));
-        }
+        } */
         memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
         ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(1000));
 
     
     }
