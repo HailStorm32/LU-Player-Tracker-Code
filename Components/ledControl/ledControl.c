@@ -8,7 +8,7 @@
 #include "freertos/task.h"
 #include "iPixel.h"
 
-#define LED_UPDATE_TASK_STACK_SIZE 2048 //Bytes
+#define LED_UPDATE_TASK_STACK_SIZE 4096 //Bytes 2048
 
 #define NUM_OF_WORLD_IDS 33 //All main worlds, minigames, side worlds, and 1 catch all for an unknown world ID
 
