@@ -10,13 +10,15 @@
 
 #define LED_UPDATE_TASK_STACK_SIZE 2048 //Bytes
 
-#define NUM_OF_WORLD_IDS 32 //All main worlds, minigames, side worlds, and 1 catch all for an unknown world ID
+#define NUM_OF_WORLD_IDS 33 //All main worlds, minigames, side worlds, and 1 catch all for an unknown world ID
 
 #define NUM_OF_LEDS 15
 #define RMT_LED_STRIP_RESOLUTION_HZ 10000000 // 10MHz resolution, 1 tick = 0.1us
 #define RMT_LED_STRIP_GPIO_NUM      9
 
 #define UNIQUE_WORLD_COLORS false
+
+#define LED_OFF 0
 
 rmt_channel_handle_t led_chan;
 rmt_encoder_handle_t led_encoder;
@@ -40,13 +42,16 @@ struct worldLed
 struct worldLed* worldLedStructArray[NUM_OF_LEDS] = {&veColor, &agColor, &petCoveColor, &gfColor, &fbColor, &nsColor, &lClubColor, 
         &ntColor, &nijagoColor, &cpColor, &portabelloColor, &moonbaseColor, &robotCityColor, &deepFreezeColor, &starbaseColor};
 
+enum WRLD_INDEX {VE, AG, PC, GF, FV, NS, LC, NT, NINJA, CP, PORT, MOON, ROBOT, DEEP, STAR};
+
+
 #define MASTER_WRLD_COLOR_RED 232
 #define MASTER_WRLD_COLOR_GREEN 138
 #define MASTER_WRLD_COLOR_BLUE 23
 #define MASTER_BRIGHTNESS .5
 
 const uint16_t auxWorldIDs[] = {
-        1101, 1102, 1001, 1150, 1151, 1203, 1204, 1250, 1251, 1302, 1303, 1350, 1402, 1403, 1450, 2001
+        1101, 1102, 1001, 1150, 1151, 1203, 1204, 1250, 1251, 1302, 1303, 1350, 1402, 1403, 1450, 2001, 1551
 };
 
 const char* LED_CTRL_LOG_TAG = "LED_Control";
@@ -184,7 +189,7 @@ int initLedControl()
     memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
     ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
     
-    xTaskCreate(ledUpdateTask, "led_update_task", LED_UPDATE_TASK_STACK_SIZE, NULL, 12, NULL);
+    xTaskCreatePinnedToCore(ledUpdateTask, "led_update_task", LED_UPDATE_TASK_STACK_SIZE, NULL, 12, NULL, 1);
 
     return 0;
 }
@@ -213,14 +218,10 @@ void ledUpdateTask()
 
     uint8_t totalUniversePop = 0;
     bool auxWorldOccupied = false;
-    
-    // uint32_t red = 0;
-    // uint32_t green = 150;
-    // uint32_t blue = 150;
 
     while (true)
     {
-       /* //Check for new JSON
+       //Check for new JSON
        if (xQueueReceive(mqttJsonQueue, &jsonMsgInfo, (TickType_t)25))
        {
             ESP_LOGD(LED_CTRL_LOG_TAG, "JSON from queue: \n %s\n\n", jsonMsgInfo->msgPtr);
@@ -296,14 +297,18 @@ void ledUpdateTask()
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
-                        // Turn on world LED
+                        //Turn on world LED
+                        led_strip_pixels[worldLedStructArray[VE]->ledArrayIndexStart + 0] = worldLedStructArray[VE]->green;
+                        led_strip_pixels[worldLedStructArray[VE]->ledArrayIndexStart + 1] = worldLedStructArray[VE]->red;
+                        led_strip_pixels[worldLedStructArray[VE]->ledArrayIndexStart + 2] = worldLedStructArray[VE]->blue;
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
-                    }
+                        led_strip_pixels[worldLedStructArray[VE]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[VE]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[VE]->ledArrayIndexStart + 2] = LED_OFF;
+                    } */
                     break;
                 case 1100: case 1101: case 1102: case 1001: case 1150: case 1151: //Avant Gardens, AG Survival, Spider Queen Battle, Return to VE, Block Yard, Avant Grove
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Avant Gardens, worldID triggered: %s", worldID->string);
@@ -311,8 +316,10 @@ void ledUpdateTask()
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
                         // Turn on world LED
+                        led_strip_pixels[worldLedStructArray[AG]->ledArrayIndexStart + 0] = worldLedStructArray[AG]->green;
+                        led_strip_pixels[worldLedStructArray[AG]->ledArrayIndexStart + 1] = worldLedStructArray[AG]->red;
+                        led_strip_pixels[worldLedStructArray[AG]->ledArrayIndexStart + 2] = worldLedStructArray[AG]->blue;
 
                         //Update the aux world indicator if its an aux world
                         if(isAuxWorld(atoi(worldID->string)))
@@ -320,21 +327,25 @@ void ledUpdateTask()
                             auxWorldOccupied = true;
                         }
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
+                        led_strip_pixels[worldLedStructArray[AG]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[AG]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[AG]->ledArrayIndexStart + 2] = LED_OFF;
 
-                    }
+                    } */
                     break;
-                case 1200: case 1203: case 1204: case 1250: case 1251: //Nimbus Station, Vertigo Loop Racetrack, Battle of NS, Nimbus Rock, Nimbus Isle
+                case 1200: case 1203: case 1204: case 1250: case 1251: case 1551: //Nimbus Station, Vertigo Loop Racetrack, Battle of NS, Nimbus Rock, Nimbus Isle, Frostburgh
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Nimbus Station, worldID triggered: %s", worldID->string);
 
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
                         // Turn on world LED
+                        led_strip_pixels[worldLedStructArray[NS]->ledArrayIndexStart + 0] = worldLedStructArray[NS]->green;
+                        led_strip_pixels[worldLedStructArray[NS]->ledArrayIndexStart + 1] = worldLedStructArray[NS]->red;
+                        led_strip_pixels[worldLedStructArray[NS]->ledArrayIndexStart + 2] = worldLedStructArray[NS]->blue;
 
                         //Update the aux world indicator if its an aux world
                         if(isAuxWorld(atoi(worldID->string)))
@@ -342,12 +353,14 @@ void ledUpdateTask()
                             auxWorldOccupied = true;
                         }
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
+                        led_strip_pixels[worldLedStructArray[NS]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NS]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NS]->ledArrayIndexStart + 2] = LED_OFF;
 
-                    }
+                    } */
                     break;
                 case 1201: //Pet Cove
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Pet Cove, worldID triggered: %s", worldID->string);
@@ -355,14 +368,18 @@ void ledUpdateTask()
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
                         // Turn on world LED
+                        led_strip_pixels[worldLedStructArray[PC]->ledArrayIndexStart + 0] = worldLedStructArray[PC]->green;
+                        led_strip_pixels[worldLedStructArray[PC]->ledArrayIndexStart + 1] = worldLedStructArray[PC]->red;
+                        led_strip_pixels[worldLedStructArray[PC]->ledArrayIndexStart + 2] = worldLedStructArray[PC]->blue;
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
-                    }
+                        led_strip_pixels[worldLedStructArray[PC]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[PC]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[PC]->ledArrayIndexStart + 2] = LED_OFF;
+                    } */
                     break;
                 case 1300: case 1302: case 1303: case 1350: //Gnarled Forest, Canyon Cove, Keelhaul Canyon, Chantey Shantey
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Gnarled Forest, worldID triggered: %s", worldID->string);
@@ -370,8 +387,10 @@ void ledUpdateTask()
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
                         // Turn on world LED
+                        led_strip_pixels[worldLedStructArray[GF]->ledArrayIndexStart + 0] = worldLedStructArray[GF]->green;
+                        led_strip_pixels[worldLedStructArray[GF]->ledArrayIndexStart + 1] = worldLedStructArray[GF]->red;
+                        led_strip_pixels[worldLedStructArray[GF]->ledArrayIndexStart + 2] = worldLedStructArray[GF]->blue;
 
                         //Update the aux world indicator if its an aux world
                         if(isAuxWorld(atoi(worldID->string)))
@@ -379,11 +398,13 @@ void ledUpdateTask()
                             auxWorldOccupied = true;
                         }
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
-                    }
+                        led_strip_pixels[worldLedStructArray[GF]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[GF]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[GF]->ledArrayIndexStart + 2] = LED_OFF;
+                    } */
                     break;
                 case 1400: case 1402: case 1403: case 1450: //Forbidden Valley, FV Dragon, Dragonmaw Chasm, Raven Bluff
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Forbidden Valley, worldID triggered: %s", worldID->string);
@@ -391,8 +412,11 @@ void ledUpdateTask()
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
                         // Turn on world LED
+                        led_strip_pixels[worldLedStructArray[FV]->ledArrayIndexStart + 0] = worldLedStructArray[FV]->green;
+                        led_strip_pixels[worldLedStructArray[FV]->ledArrayIndexStart + 1] = worldLedStructArray[FV]->red;
+                        led_strip_pixels[worldLedStructArray[FV]->ledArrayIndexStart + 2] = worldLedStructArray[FV]->blue;
+
 
                         //Update the aux world indicator if its an aux world
                         if(isAuxWorld(atoi(worldID->string)))
@@ -400,11 +424,13 @@ void ledUpdateTask()
                             auxWorldOccupied = true;
                         }
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
-                    }
+                        led_strip_pixels[worldLedStructArray[FV]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[FV]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[FV]->ledArrayIndexStart + 2] = LED_OFF;
+                    } */
                     break;
                 case 1600: //Starbase 3001
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Starbase 3001, worldID triggered: %s", worldID->string);
@@ -412,14 +438,18 @@ void ledUpdateTask()
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
                         // Turn on world LED
+                        led_strip_pixels[worldLedStructArray[STAR]->ledArrayIndexStart + 0] = worldLedStructArray[STAR]->green;
+                        led_strip_pixels[worldLedStructArray[STAR]->ledArrayIndexStart + 1] = worldLedStructArray[STAR]->red;
+                        led_strip_pixels[worldLedStructArray[STAR]->ledArrayIndexStart + 2] = worldLedStructArray[STAR]->blue;
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
-                    }
+                        led_strip_pixels[worldLedStructArray[STAR]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[STAR]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[STAR]->ledArrayIndexStart + 2] = LED_OFF;
+                    } */
                     break;
                 case 1601: //Deep Freeze
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Deep Freeze, worldID triggered: %s", worldID->string);
@@ -427,14 +457,18 @@ void ledUpdateTask()
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
                         // Turn on world LED
+                        led_strip_pixels[worldLedStructArray[DEEP]->ledArrayIndexStart + 0] = worldLedStructArray[DEEP]->green;
+                        led_strip_pixels[worldLedStructArray[DEEP]->ledArrayIndexStart + 1] = worldLedStructArray[DEEP]->red;
+                        led_strip_pixels[worldLedStructArray[DEEP]->ledArrayIndexStart + 2] = worldLedStructArray[DEEP]->blue;
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
-                    }
+                        led_strip_pixels[worldLedStructArray[DEEP]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[DEEP]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[DEEP]->ledArrayIndexStart + 2] = LED_OFF;
+                    } */
                     break;
                 case 1602: //Robot City
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Robot City, worldID triggered: %s", worldID->string);
@@ -442,14 +476,18 @@ void ledUpdateTask()
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
                         // Turn on world LED
+                        led_strip_pixels[worldLedStructArray[ROBOT]->ledArrayIndexStart + 0] = worldLedStructArray[ROBOT]->green;
+                        led_strip_pixels[worldLedStructArray[ROBOT]->ledArrayIndexStart + 1] = worldLedStructArray[ROBOT]->red;
+                        led_strip_pixels[worldLedStructArray[ROBOT]->ledArrayIndexStart + 2] = worldLedStructArray[ROBOT]->blue;
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
-                    }
+                        led_strip_pixels[worldLedStructArray[ROBOT]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[ROBOT]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[ROBOT]->ledArrayIndexStart + 2] = LED_OFF;
+                    } */
                     break;
                 case 1603: //Moon Base
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Moon Base, worldID triggered: %s", worldID->string);
@@ -457,14 +495,18 @@ void ledUpdateTask()
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
                         // Turn on world LED
+                        led_strip_pixels[worldLedStructArray[MOON]->ledArrayIndexStart + 0] = worldLedStructArray[MOON]->green;
+                        led_strip_pixels[worldLedStructArray[MOON]->ledArrayIndexStart + 1] = worldLedStructArray[MOON]->red;
+                        led_strip_pixels[worldLedStructArray[MOON]->ledArrayIndexStart + 2] = worldLedStructArray[MOON]->blue;
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
-                    }
+                        led_strip_pixels[worldLedStructArray[MOON]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[MOON]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[MOON]->ledArrayIndexStart + 2] = LED_OFF;
+                    } */
                     break;
                 case 1604: //Portabello
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Portabello, worldID triggered: %s", worldID->string);
@@ -472,14 +514,18 @@ void ledUpdateTask()
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
                         // Turn on world LED
+                        led_strip_pixels[worldLedStructArray[PORT]->ledArrayIndexStart + 0] = worldLedStructArray[PORT]->green;
+                        led_strip_pixels[worldLedStructArray[PORT]->ledArrayIndexStart + 1] = worldLedStructArray[PORT]->red;
+                        led_strip_pixels[worldLedStructArray[PORT]->ledArrayIndexStart + 2] = worldLedStructArray[PORT]->blue;
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
-                    }
+                        led_strip_pixels[worldLedStructArray[PORT]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[PORT]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[PORT]->ledArrayIndexStart + 2] = LED_OFF;
+                    } */
                     break;
                 case 1700: //LEGO Club (Club Station Alpha)
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: LEGO Club (Club Station Alpha), worldID triggered: %s", worldID->string);
@@ -487,14 +533,18 @@ void ledUpdateTask()
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
                         // Turn on world LED
+                        led_strip_pixels[worldLedStructArray[LC]->ledArrayIndexStart + 0] = worldLedStructArray[LC]->green;
+                        led_strip_pixels[worldLedStructArray[LC]->ledArrayIndexStart + 1] = worldLedStructArray[LC]->red;
+                        led_strip_pixels[worldLedStructArray[LC]->ledArrayIndexStart + 2] = worldLedStructArray[LC]->blue;
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
-                    }
+                        led_strip_pixels[worldLedStructArray[LC]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[LC]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[LC]->ledArrayIndexStart + 2] = LED_OFF;
+                    } */
                     break;
                 case 1800: //Crux Prime
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Crux Prime, worldID triggered: %s", worldID->string);
@@ -502,14 +552,18 @@ void ledUpdateTask()
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
                         // Turn on world LED
+                        led_strip_pixels[worldLedStructArray[CP]->ledArrayIndexStart + 0] = worldLedStructArray[CP]->green;
+                        led_strip_pixels[worldLedStructArray[CP]->ledArrayIndexStart + 1] = worldLedStructArray[CP]->red;
+                        led_strip_pixels[worldLedStructArray[CP]->ledArrayIndexStart + 2] = worldLedStructArray[CP]->blue;
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
-                    }
+                        led_strip_pixels[worldLedStructArray[CP]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[CP]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[CP]->ledArrayIndexStart + 2] = LED_OFF;
+                    } */
                     break;
                 case 1900: //Nexus Tower
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Nexus Tower, worldID triggered: %s", worldID->string);
@@ -517,14 +571,18 @@ void ledUpdateTask()
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
                         // Turn on world LED
+                        led_strip_pixels[worldLedStructArray[NT]->ledArrayIndexStart + 0] = worldLedStructArray[NT]->green;
+                        led_strip_pixels[worldLedStructArray[NT]->ledArrayIndexStart + 1] = worldLedStructArray[NT]->red;
+                        led_strip_pixels[worldLedStructArray[NT]->ledArrayIndexStart + 2] = worldLedStructArray[NT]->blue;
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
-                    }
+                        led_strip_pixels[worldLedStructArray[NT]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NT]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NT]->ledArrayIndexStart + 2] = LED_OFF;
+                    } */
                     break;
                 case 2000: case 2001: //Ninjago, Frakjaw Battle
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Ninjago, worldID triggered: %s", worldID->string);
@@ -532,8 +590,10 @@ void ledUpdateTask()
                     //Turn on the world LED if its occupied
                     if(worldPop->valueint > 0)
                     {
-                        //TODO:
                         // Turn on world LED
+                        led_strip_pixels[worldLedStructArray[NINJA]->ledArrayIndexStart + 0] = worldLedStructArray[NINJA]->green;
+                        led_strip_pixels[worldLedStructArray[NINJA]->ledArrayIndexStart + 1] = worldLedStructArray[NINJA]->red;
+                        led_strip_pixels[worldLedStructArray[NINJA]->ledArrayIndexStart + 2] = worldLedStructArray[NINJA]->blue;
 
                         //Update the aux world indicator if its an aux world
                         if(isAuxWorld(atoi(worldID->string)))
@@ -541,11 +601,13 @@ void ledUpdateTask()
                             auxWorldOccupied = true;
                         }
                     }
-                    else
+                    /* else
                     {
-                        //TODO:
                         // Turn off world LED
-                    }
+                        led_strip_pixels[worldLedStructArray[NINJA]->ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NINJA]->ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NINJA]->ledArrayIndexStart + 2] = LED_OFF;
+                    } */
                     break;
                 
                 default: //Unsupported World ID
@@ -553,13 +615,20 @@ void ledUpdateTask()
                     break;
                 }
             }
-
+            
+            //Update LEDs
+            ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
+            vTaskDelay(pdMS_TO_TICKS(100)); //Give the driver time to send data before modifying the array
+            
             //TODO:
             // Send updated universe population to seven segment display updater
 
             //Reset the universe population
             totalUniversePop = 0;
             auxWorldOccupied = false;
+
+            //Reset LED world States
+            memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
             
             //Recursively free the parsed JSON
             cJSON_Delete(parsedWorldStatuses);
@@ -567,69 +636,9 @@ void ledUpdateTask()
             worldID = NULL;
             worldName = NULL;
             worldPop = NULL;
-       } */
-        
-        /* for (float b = 0; b <= 1; b += .1)
-        {
-            for (int i = 0; i < NUM_OF_LEDS * 3; i += 3)
-            {
-
-                // Build RGB pixels
-                led_strip_pixels[i + 0] = MASTER_WRLD_COLOR_GREEN * b;
-                led_strip_pixels[i + 1] = MASTER_WRLD_COLOR_RED * b;
-                led_strip_pixels[i + 2] = MASTER_WRLD_COLOR_BLUE * b;
-            }
-            // Flush RGB values to LEDs
-            ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
-            vTaskDelay(pdMS_TO_TICKS(700));
-        } */
-
-        //--------------------
-        for (uint8_t ledIndex = 0; ledIndex < NUM_OF_LEDS; ledIndex++)
-        {
-            led_strip_pixels[worldLedStructArray[ledIndex]->ledArrayIndexStart + 0] = MASTER_WRLD_COLOR_GREEN * .2;
-            led_strip_pixels[worldLedStructArray[ledIndex]->ledArrayIndexStart + 1] = MASTER_WRLD_COLOR_RED * .2;
-            led_strip_pixels[worldLedStructArray[ledIndex]->ledArrayIndexStart + 2] = MASTER_WRLD_COLOR_BLUE * .2;
-            ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
-            vTaskDelay(pdMS_TO_TICKS(2000));
-        }
-        ///----------------------
-
-
-        /* for (int i = 0; i < NUM_OF_LEDS * 3; i+=3) {
-            
-            // Build RGB pixels
-            led_strip_pixels[i + 0] = 0;
-            led_strip_pixels[i + 1] = 0;
-            led_strip_pixels[i + 2] = 0;
-            
-            // Flush RGB values to LEDs
-            ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
-            vTaskDelay(pdMS_TO_TICKS(500));
-        } */
-        memset(led_strip_pixels, 0, sizeof(led_strip_pixels));
-        ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
-        vTaskDelay(pdMS_TO_TICKS(1000));
-
-    
+       }
     }
     
     //If we for whatever reason exit the loop, we need to close the task
-    //free(receivedData);
     vTaskDelete(NULL);
 }
-
-/* void freeItem(cJSON *item) {
-    if ((item != NULL) && (item->child != NULL))
-    {
-        cJSON_Delete(item->child);
-    }
-    if ((item->valuestring != NULL) && !(item->type & cJSON_IsReference))
-    {
-        free(item->valuestring);
-    }
-    if ((item->string != NULL) && !(item->type & cJSON_StringIsConst))
-    {
-        free(item->string);
-    }
-} */

@@ -7,9 +7,9 @@
 
 int app_main(void)
 {
-    esp_log_level_set("MQTT_Control", ESP_LOG_DEBUG); 
+    esp_log_level_set("MQTT_Control", ESP_LOG_INFO); //ESP_LOG_DEBUG
     esp_log_level_set("Linked_List", ESP_LOG_INFO); 
-    esp_log_level_set("LED_Control", ESP_LOG_DEBUG); 
+    esp_log_level_set("LED_Control", ESP_LOG_INFO);  //ESP_LOG_DEBUG
 
     initLedControl();
     InitWifiSta();

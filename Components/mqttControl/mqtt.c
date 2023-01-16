@@ -125,7 +125,7 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 				//See if we have the full message, else add on to the nodeData
 				if (msgData->currentLength + event->data_len == event->total_data_len)
 				{
-					ESP_LOGD(MQTT_LOG_TAG, "Have full message");
+					ESP_LOGI(MQTT_LOG_TAG, "Have full message");
 
 					//Update length of the message we have currently
 					msgData->currentLength += event->data_len;
@@ -172,7 +172,7 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 				}
 				else
 				{
-					ESP_LOGD(MQTT_LOG_TAG, "Have some message");
+					ESP_LOGI(MQTT_LOG_TAG, "Have some message");
 					
 					//Update length of the message we have currently
 					msgData->currentLength += event->data_len;
