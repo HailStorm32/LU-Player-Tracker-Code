@@ -8,7 +8,10 @@
 #define GPIO_DIG_SEL    7
 #define GPIO_MODE_BTN   12
 
-#define LOW     0
-#define HIGH    1
+#define LOW             0
+#define HIGH            1
+
+#define RIGHT_DIGIT     LOW
+#define LEFT_DIGIT      HIGH
 
 int initGPIO();

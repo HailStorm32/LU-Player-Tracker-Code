@@ -7,6 +7,7 @@
 #include "driver/rmt_tx.h"
 #include "freertos/task.h"
 #include "iPixel.h"
+#include "sevenSegmentControl.h"
 
 #define LED_UPDATE_TASK_STACK_SIZE 4096 //Bytes 2048
 
@@ -190,6 +191,9 @@ int initLedControl()
     ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
     
     xTaskCreatePinnedToCore(ledUpdateTask, "led_update_task", LED_UPDATE_TASK_STACK_SIZE, NULL, 12, NULL, 1);
+
+    //Initialize seven segment display
+    initSevenSegment();
 
     return 0;
 }
@@ -620,8 +624,9 @@ void ledUpdateTask()
             ESP_ERROR_CHECK(rmt_transmit(led_chan, led_encoder, led_strip_pixels, sizeof(led_strip_pixels), &tx_config));
             vTaskDelay(pdMS_TO_TICKS(100)); //Give the driver time to send data before modifying the array
             
-            //TODO:
+
             // Send updated universe population to seven segment display updater
+            changeSevenSegment(totalUniversePop, auxWorldOccupied);
 
             //Reset the universe population
             totalUniversePop = 0;
