@@ -4,6 +4,7 @@
 #include "mqtt.h"
 #include "wifi.h"
 #include "ledControl.h"
+#include "gpioControl.h"
 
 int app_main(void)
 {
@@ -11,8 +12,9 @@ int app_main(void)
     esp_log_level_set("Linked_List", ESP_LOG_INFO); 
     esp_log_level_set("LED_Control", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
 
+    initGPIO();
     initLedControl();
-    InitWifiSta();
+    initWifiSta();
     initMqttClient();
 
     printf("This is a test\n\n This is a Test2\n\n");

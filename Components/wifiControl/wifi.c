@@ -55,7 +55,7 @@ static void eventHandler(void* arg, esp_event_base_t eventBase, int32_t eventId,
 }
 
 //Initalize wifi into station mode
-void InitWifiSta(void)
+void initWifiSta(void)
 {
     wifiEventGroup = xEventGroupCreate(); //Create and store the event group
 
