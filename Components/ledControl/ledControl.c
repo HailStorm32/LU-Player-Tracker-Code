@@ -11,7 +11,7 @@
 
 #define LED_UPDATE_TASK_STACK_SIZE 4096 //Bytes 2048
 
-#define NUM_OF_WORLD_IDS 33 //All main worlds, minigames, side worlds, and 1 catch all for an unknown world ID
+#define NUM_OF_SUPORTED_WRLD_IDS 34 //All main worlds, minigames, side worlds, and 1 catch all for an unknown world ID
 
 #define NUM_OF_LEDS 15
 #define RMT_LED_STRIP_RESOLUTION_HZ 10000000 // 10MHz resolution, 1 tick = 0.1us
@@ -52,7 +52,7 @@ enum WRLD_INDEX {VE, AG, PC, GF, FV, NS, LC, NT, NINJA, CP, PORT, MOON, ROBOT, D
 #define MASTER_BRIGHTNESS .5
 
 const uint16_t auxWorldIDs[] = {
-        1101, 1102, 1001, 1150, 1151, 1203, 1204, 1250, 1251, 1302, 1303, 1350, 1402, 1403, 1450, 2001, 1551
+        1101, 1102, 1001, 1150, 1151, 1203, 1204, 1250, 1251, 1302, 1303, 1350, 1402, 1403, 1450, 2001, 1260, 1261
 };
 
 const char* LED_CTRL_LOG_TAG = "LED_Control";
@@ -340,7 +340,7 @@ void ledUpdateTask()
 
                     } */
                     break;
-                case 1200: case 1203: case 1204: case 1250: case 1251: case 1551: //Nimbus Station, Vertigo Loop Racetrack, Battle of NS, Nimbus Rock, Nimbus Isle, Frostburgh
+                case 1200: case 1203: case 1204: case 1250: case 1251: case 1260: case 1261: //Nimbus Station, Vertigo Loop Racetrack, Battle of NS, Nimbus Rock, Nimbus Isle, Frostburgh, Frostburgh race track
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Nimbus Station, worldID triggered: %s", worldID->string);
 
                     //Turn on the world LED if its occupied
@@ -385,7 +385,7 @@ void ledUpdateTask()
                         led_strip_pixels[worldLedStructArray[PC]->ledArrayIndexStart + 2] = LED_OFF;
                     } */
                     break;
-                case 1300: case 1302: case 1303: case 1350: //Gnarled Forest, Canyon Cove, Keelhaul Canyon, Chantey Shantey
+                case 1300: case 1302: case 1303: case 1350: //Gnarled Forest, Cannon Cove, Keelhaul Canyon, Chantey Shantey
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Updating LED: Gnarled Forest, worldID triggered: %s", worldID->string);
 
                     //Turn on the world LED if its occupied
