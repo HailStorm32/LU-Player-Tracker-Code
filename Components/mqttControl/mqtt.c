@@ -168,7 +168,10 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 					//Free up the space used by the msgData struct
 					free(msgData->msg);
 					free(msgData->topic);
-					free(msgData);
+					//free(msgData);
+
+					//Make sure to remove the LL entry
+					LL_removeItem(&linkedListHead, event->msg_id);
 				}
 				else
 				{
