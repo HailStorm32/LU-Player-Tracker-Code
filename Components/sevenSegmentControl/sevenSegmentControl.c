@@ -403,11 +403,13 @@ void sevenSegUpdateTask()
                 {
                     if (displaySegmentsLocalCpy[digit][segment] == ON)
                     {
+                        //printf("\n\nDigit: %d | Seg: %d\n", digit, segment);
                         gpio_set_level(GPIO_TO_MUX_A0, segment & 1);
                         gpio_set_level(GPIO_TO_MUX_A1, (segment>>1) & 1);
                         gpio_set_level(GPIO_TO_MUX_A2, (segment>>2) & 1);
+                        vTaskDelay(pdMS_TO_TICKS(10));
                     }
-                    vTaskDelay(pdMS_TO_TICKS(5));
+                    //vTaskDelay(pdMS_TO_TICKS(5));
                 }
                 vTaskDelay(pdMS_TO_TICKS(5));
             }
