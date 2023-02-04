@@ -1,8 +1,11 @@
+#include <string.h>
+#include "esp_log.h"
 #include "sevenSegmentControl.h"
 #include "gpioControl.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include <string.h>
+#include "freertos/queue.h"
+
 
 
 /*               
@@ -11,6 +14,11 @@
              E|_D_|C                C == 2  |   G == 6
                     * H             D == 3  |   H == 7
 */              
+const char* SEG_UPDATE_TAG = "Segment_Update";
+
+#define SEG_UPDATE_STACK_SIZE 2048 //Bytes
+
+#define SEGMENT_ON_TIME_MS 5
 
 #define NUM_OF_SEGMENTS 8
 #define NUM_OF_DIGITS   2
@@ -23,9 +31,10 @@ enum SEGMENTS {SEG_A, SEG_B, SEG_C, SEG_D, SEG_E, SEG_F, SEG_G, SEG_H};
 //Array for holding display data. [digit][segment]
 bool displaySegments[NUM_OF_DIGITS][NUM_OF_SEGMENTS];
 
-bool numberSegments[11][NUM_OF_SEGMENTS];
+//Array for defining what numbers and symbols look like (ie what segmets they should light up)
+bool numberSegments[11][NUM_OF_SEGMENTS]; //digits 0-9 and error
 
-
+QueueHandle_t segmentUpdateQueue;
 
 void segmentTest()
 {
@@ -208,8 +217,11 @@ int initSevenSegment()
     gpio_set_level(GPIO_TO_MUX_A2, LOW);
     gpio_set_level(GPIO_DIG_SEL, LEFT_DIGIT);
 
-    // TODO:
-    //  Start update task
+    //Setup the queue
+    segmentUpdateQueue = xQueueCreate(10, sizeof(&displaySegments));
+
+    //Start update task
+    xTaskCreate(sevenSegUpdateTask, "seven_segment_update_task", SEG_UPDATE_STACK_SIZE, NULL, 11, NULL);
 
     return 0;
 }
@@ -313,6 +325,100 @@ void changeSevenSegment(uint8_t numberToDisplay, bool auxWorld)
         displaySegments[RIGHT_DIGIT][SEG_H] = ON;
     }
     
-    //TODO:
-    // Malloc a copy of array and put in queue for display updater
+    
+    //Pointer that will hold the segment array copy
+    bool* displaySegmentsCopy = malloc(sizeof(displaySegments));
+
+    if(displaySegmentsCopy == NULL)
+    {
+        ESP_LOGE(SEG_UPDATE_TAG, "ERROR: Unable to allocate memory for displaySegmentsCopy");
+    }
+
+    // printf("\n\n SENT:");
+    // for (uint8_t digit = 0; digit < NUM_OF_DIGITS; digit++)
+    // {
+    //     printf("\nDigit: %d || ", digit);
+    //     for (uint8_t segment = 0; segment < NUM_OF_SEGMENTS; segment++)
+    //     {
+    //         printf(", %d", displaySegments[digit][segment]);
+    //         vTaskDelay(pdMS_TO_TICKS(100));
+    //     }
+    //     vTaskDelay(pdMS_TO_TICKS(100));
+    // }
+    // printf("\n\n");
+
+    //Copy over the array data as we might modify the local copy
+    memcpy(displaySegmentsCopy, displaySegments, sizeof(displaySegments));
+
+    //Queue and send memory pointer to segment updater
+    if(xQueueSendToBack(segmentUpdateQueue, &displaySegmentsCopy, 10) == errQUEUE_FULL)
+    {
+        ESP_LOGE(SEG_UPDATE_TAG, "ERROR: segmentUpdateQueue is full");
+    }
+}
+
+void sevenSegUpdateTask()
+{
+    bool displaySegmentsLocalCpy[NUM_OF_DIGITS][NUM_OF_SEGMENTS];
+    bool* displaySegmentsUpdated = NULL;
+
+    bool initalizedArray = false;
+
+    while (true)
+    {
+        if (xQueueReceive(segmentUpdateQueue, &displaySegmentsUpdated, 0))
+        {
+            //Update our local copy of the array with the updated one
+            memcpy(&displaySegmentsLocalCpy, displaySegmentsUpdated, sizeof(displaySegments));
+            
+            // printf("\n\n GOT:");
+            // for (uint8_t digit = 0; digit < NUM_OF_DIGITS; digit++)
+            // {
+            //     printf("\nDigit: %d || ", digit);
+            //     for (uint8_t segment = 0; segment < NUM_OF_SEGMENTS; segment++)
+            //     {
+            //         printf(", %d", displaySegmentsLocalCpy[digit][segment]);
+            //         vTaskDelay(pdMS_TO_TICKS(100));
+            //     }
+            //     vTaskDelay(pdMS_TO_TICKS(100));
+            // }
+            // printf("\n\n");
+
+            if(!initalizedArray)
+            {
+                initalizedArray = true;
+            }
+
+            free(displaySegmentsUpdated);        
+        }
+
+        //Only update the segment display if the array is initalized 
+        if(initalizedArray)
+        {
+            for (uint8_t digit = 0; digit < NUM_OF_DIGITS; digit++)
+            {
+                gpio_set_level(GPIO_DIG_SEL, digit & 1);
+                
+                for (uint8_t segment = 0; segment < NUM_OF_SEGMENTS; segment++)
+                {
+                    if (displaySegmentsLocalCpy[digit][segment] == ON)
+                    {
+                        gpio_set_level(GPIO_TO_MUX_A0, segment & 1);
+                        gpio_set_level(GPIO_TO_MUX_A1, (segment>>1) & 1);
+                        gpio_set_level(GPIO_TO_MUX_A2, (segment>>2) & 1);
+                    }
+                    vTaskDelay(pdMS_TO_TICKS(5));
+                }
+                vTaskDelay(pdMS_TO_TICKS(5));
+            }
+            vTaskDelay(pdMS_TO_TICKS(10));
+        }
+        else
+        {
+            vTaskDelay(pdMS_TO_TICKS(100));
+        }
+    }
+    
+    //If we for whatever reason exit the loop, we need to close the task
+    vTaskDelete(NULL);
 }

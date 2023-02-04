@@ -5,3 +5,5 @@
 int initSevenSegment();
 
 void changeSevenSegment(uint8_t numberToDisplay, bool auxWorld);
+
+void sevenSegUpdateTask();
