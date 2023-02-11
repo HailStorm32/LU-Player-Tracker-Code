@@ -7,6 +7,8 @@
 #include "driver/rmt_tx.h"
 #include "freertos/task.h"
 #include "iPixel.h"
+#include "esp_err.h"
+#include "esp_task_wdt.h"
 #include "sevenSegmentControl.h"
 
 #define LED_UPDATE_TASK_STACK_SIZE 4096 //Bytes 2048
@@ -222,6 +224,10 @@ void ledUpdateTask()
 
     uint8_t totalUniversePop = 0;
     bool auxWorldOccupied = false;
+
+    // //Subscribe to the watchdog
+    // esp_task_wdt_add(NULL);
+    // ESP_ERROR_CHECK(esp_task_wdt_status(NULL));
 
     while (true)
     {
@@ -642,6 +648,7 @@ void ledUpdateTask()
             worldName = NULL;
             worldPop = NULL;
        }
+       vTaskDelay(pdMS_TO_TICKS(2000));
     }
     
     //If we for whatever reason exit the loop, we need to close the task

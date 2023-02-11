@@ -5,6 +5,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include "esp_task_wdt.h"
+#include "esp_rom_sys.h"
 
 
 
@@ -125,7 +127,7 @@ int initSevenSegment()
     numberSegments[2][SEG_A] = ON;
     numberSegments[2][SEG_B] = ON;
     numberSegments[2][SEG_C] = OFF;
-    numberSegments[2][SEG_D] = OFF;
+    numberSegments[2][SEG_D] = ON;
     numberSegments[2][SEG_E] = ON;
     numberSegments[2][SEG_F] = OFF;
     numberSegments[2][SEG_G] = ON;
@@ -221,7 +223,8 @@ int initSevenSegment()
     segmentUpdateQueue = xQueueCreate(10, sizeof(&displaySegments));
 
     //Start update task
-    xTaskCreate(sevenSegUpdateTask, "seven_segment_update_task", SEG_UPDATE_STACK_SIZE, NULL, 11, NULL);
+    xTaskCreatePinnedToCore(sevenSegUpdateTask, "seven_segment_update_task", SEG_UPDATE_STACK_SIZE, NULL, 11, NULL, 1);
+    //xTaskCreate(sevenSegUpdateTask, "seven_segment_update_task", SEG_UPDATE_STACK_SIZE, NULL, 11, NULL);
 
     return 0;
 }
@@ -364,25 +367,16 @@ void sevenSegUpdateTask()
 
     bool initalizedArray = false;
 
+    //Subscribe to the watchdog
+    esp_task_wdt_add(NULL);
+    ESP_ERROR_CHECK(esp_task_wdt_status(NULL));
+
     while (true)
     {
         if (xQueueReceive(segmentUpdateQueue, &displaySegmentsUpdated, 0))
         {
             //Update our local copy of the array with the updated one
             memcpy(&displaySegmentsLocalCpy, displaySegmentsUpdated, sizeof(displaySegments));
-            
-            // printf("\n\n GOT:");
-            // for (uint8_t digit = 0; digit < NUM_OF_DIGITS; digit++)
-            // {
-            //     printf("\nDigit: %d || ", digit);
-            //     for (uint8_t segment = 0; segment < NUM_OF_SEGMENTS; segment++)
-            //     {
-            //         printf(", %d", displaySegmentsLocalCpy[digit][segment]);
-            //         vTaskDelay(pdMS_TO_TICKS(100));
-            //     }
-            //     vTaskDelay(pdMS_TO_TICKS(100));
-            // }
-            // printf("\n\n");
 
             if(!initalizedArray)
             {
@@ -407,17 +401,18 @@ void sevenSegUpdateTask()
                         gpio_set_level(GPIO_TO_MUX_A0, segment & 1);
                         gpio_set_level(GPIO_TO_MUX_A1, (segment>>1) & 1);
                         gpio_set_level(GPIO_TO_MUX_A2, (segment>>2) & 1);
-                        vTaskDelay(pdMS_TO_TICKS(10));
+                        //esp_task_wdt_reset_user(func_a_twdt_user_hdl);
+                        esp_task_wdt_reset();
+                        esp_rom_delay_us(1000);
+                        //vTaskDelay(pdMS_TO_TICKS(9));
                     }
-                    //vTaskDelay(pdMS_TO_TICKS(5));
+                    
+                    //vTaskDelay(10);
                 }
-                vTaskDelay(pdMS_TO_TICKS(5));
+                esp_rom_delay_us(1000);
+                //vTaskDelay(pdMS_TO_TICKS(5));
             }
-            vTaskDelay(pdMS_TO_TICKS(10));
-        }
-        else
-        {
-            vTaskDelay(pdMS_TO_TICKS(100));
+            //vTaskDelay(pdMS_TO_TICKS(10));
         }
     }
     
