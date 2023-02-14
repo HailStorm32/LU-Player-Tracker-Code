@@ -6,6 +6,8 @@
 #include "esp_log.h"
 #include "linkedList.h"
 #include "ledControl.h"
+#include "esp_tls.h"
+#include "esp_wifi.h"
 #include "../../credentials.h"
 
 
@@ -40,11 +42,15 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 	ESP_LOGD(MQTT_LOG_TAG, "Event dispatched from event loop base=%s, eventId=%ld", base, eventId);
 	esp_mqtt_event_handle_t event = eventData;
 	int msgId;
+	uint8_t numOfFailedConn = 0;
 
 	switch (eventId) //(esp_mqtt_event_id_t)
 	{
 	case MQTT_EVENT_CONNECTED:
 		ESP_LOGI(MQTT_LOG_TAG, "MQTT_EVENT_CONNECTED");
+
+		//Reset the failed connection counter
+		numOfFailedConn = 0;
 
 		msgId = esp_mqtt_client_subscribe(mqttClient, MQTT_TOPIC, 1);
 		ESP_LOGI(MQTT_LOG_TAG, "sent subscribe successful, msgId=%d", msgId);
@@ -234,6 +240,24 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 			log_error_if_nonzero("reported from tls stack", event->error_handle->esp_tls_stack_err);
 			log_error_if_nonzero("captured as transport's socket errno", event->error_handle->esp_transport_sock_errno);
 			ESP_LOGI(MQTT_LOG_TAG, "Last errno string (%s)", strerror(event->error_handle->esp_transport_sock_errno));
+		}
+		
+		//TLS connection error with server
+		if(event->error_handle->error_type == ESP_ERR_ESP_TLS_FAILED_CONNECT_TO_HOST)
+		{
+			if(numOfFailedConn < 2)
+			{
+				ESP_LOGI(MQTT_LOG_TAG, "Forcing MQTT reconnect");
+				ESP_ERROR_CHECK(esp_mqtt_client_reconnect(mqttClient));
+			}
+			else
+			{
+				ESP_LOGI(MQTT_LOG_TAG, "Reconnect failed > %d times, reconnecting to WIFI", numOfFailedConn);
+				ESP_ERROR_CHECK(esp_wifi_disconnect());
+				vTaskDelay(1);
+				ESP_ERROR_CHECK(esp_wifi_connect());
+			}
+			numOfFailedConn += 1;
 		}
 		break;
 	default:
