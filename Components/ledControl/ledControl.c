@@ -19,7 +19,7 @@
 #define RMT_LED_STRIP_RESOLUTION_HZ 10000000 // 10MHz resolution, 1 tick = 0.1us
 #define RMT_LED_STRIP_GPIO_NUM      9
 
-#define UNIQUE_WORLD_COLORS false
+#define UNIQUE_WORLD_COLORS true
 
 #define LED_OFF 0
 
@@ -48,9 +48,9 @@ struct worldLed* worldLedStructArray[NUM_OF_LEDS] = {&veColor, &agColor, &petCov
 enum WRLD_INDEX {VE, AG, PC, GF, FV, NS, LC, NT, NINJA, CP, PORT, MOON, ROBOT, DEEP, STAR};
 
 
-#define MASTER_WRLD_COLOR_RED 232
-#define MASTER_WRLD_COLOR_GREEN 138
-#define MASTER_WRLD_COLOR_BLUE 23
+#define MASTER_WRLD_COLOR_RED 18
+#define MASTER_WRLD_COLOR_GREEN 55
+#define MASTER_WRLD_COLOR_BLUE 201
 #define MASTER_BRIGHTNESS .5
 
 const uint16_t auxWorldIDs[] = {
@@ -71,79 +71,94 @@ int initLedControl()
     if (UNIQUE_WORLD_COLORS)
     {
         //Venture explore
-        veColor.red = 0;
-        veColor.green = 0;
-        veColor.blue = 0;
+        float veBrightness = .5;
+        veColor.red = 18 * veBrightness;
+        veColor.green = 55 * veBrightness;
+        veColor.blue = 201 * veBrightness;
 
         //Avant Gardens
-        agColor.red = 0;
-        agColor.green = 0;
-        agColor.blue = 0;
+        float agBrightness = .5;
+        agColor.red = 245 * agBrightness;
+        agColor.green = 72 * agBrightness;
+        agColor.blue = 24 * agBrightness;
         
         //Pet Cove
-        petCoveColor.red = 0;
-        petCoveColor.green = 0;
-        petCoveColor.blue = 0;
+        float petCoveBrightness = .5;
+        petCoveColor.red = 22 * petCoveBrightness;
+        petCoveColor.green = 186 * petCoveBrightness;
+        petCoveColor.blue = 123 * petCoveBrightness;
 
         //Gnarled Forest
-        gfColor.red = 0;
-        gfColor.green = 0;
-        gfColor.blue = 0;
+        float gfBrightness = .5;
+        gfColor.red = 91 * gfBrightness;
+        gfColor.green = 186 * gfBrightness;
+        gfColor.blue = 22 * gfBrightness;
 
         //Forbidden Valley
-        fbColor.red = 0;
-        fbColor.green = 0;
-        fbColor.blue = 0;
+        float fvBrightness = .5;
+        fbColor.red = 230 * fvBrightness;
+        fbColor.green = 48 * fvBrightness;
+        fbColor.blue = 48 * fvBrightness;
         
         //Nimbus Station
-        nsColor.red = 0;
-        nsColor.green = 0;
-        nsColor.blue = 0;
+        float nsBrightness = .5;
+        nsColor.red = 18 * nsBrightness;
+        nsColor.green = 55 * nsBrightness;
+        nsColor.blue = 201 * nsBrightness;
 
         //Club Station Alpha
-        lClubColor.red = 0;
-        lClubColor.green = 0;
-        lClubColor.blue = 0;
+        float lClubBrightness = .5;
+        lClubColor.red = 18 * lClubBrightness;
+        lClubColor.green = 55 * lClubBrightness;
+        lClubColor.blue = 201 * lClubBrightness;
 
         //Nexus Tower
-        ntColor.red = 0;
-        ntColor.green = 0;
-        ntColor.blue = 0;
+        float ntBrightness = .5;
+        ntColor.red = 40 * ntBrightness;
+        ntColor.green = 222 * ntBrightness;
+        ntColor.blue = 216 * ntBrightness;
 
         //Ninjago
-        nijagoColor.red = 0;
-        nijagoColor.green = 0;
-        nijagoColor.blue = 0;
+        float ninjagoBrightness = .5;
+        nijagoColor.red = 186 * ninjagoBrightness;
+        nijagoColor.green = 24 * ninjagoBrightness;
+        nijagoColor.blue = 245 * ninjagoBrightness;
 
         //Crux Prime
-        cpColor.red = 0;
-        cpColor.green = 0;
-        cpColor.blue = 0;
+        float cpBrightness = .5;
+        cpColor.red = 79 * cpBrightness;
+        cpColor.green = 39 * cpBrightness;
+        cpColor.blue = 227 * cpBrightness;
         
         //Portabello
-        portabelloColor.red = 0;
-        portabelloColor.green = 0;
-        portabelloColor.blue = 0;
+        float portabelloBrightness = .5;
+        portabelloColor.red = 173 * portabelloBrightness;
+        portabelloColor.green = 29 * portabelloBrightness;
+        portabelloColor.blue = 133 * portabelloBrightness;
 
         //Moonbase
-        moonbaseColor.red = 0;
-        moonbaseColor.green = 0;
-        moonbaseColor.blue = 0;
+        float moonbaseBrightness = .5;
+        moonbaseColor.red = 107 * moonbaseBrightness;
+        moonbaseColor.green = 106 * moonbaseBrightness;
+        moonbaseColor.blue = 107 * moonbaseBrightness;
 
         //Robot City
-        robotCityColor.red = 0;
-        robotCityColor.green = 0;
-        robotCityColor.blue = 0;
+        float robotCityBrightness = .5;
+        robotCityColor.red = 247 * robotCityBrightness;
+        robotCityColor.green = 248 * robotCityBrightness;
+        robotCityColor.blue = 250 * robotCityBrightness;
 
         //Deep Freeze
-        deepFreezeColor.red = 0;
-        deepFreezeColor.green = 0;
-        deepFreezeColor.blue = 0;
+        float deepFreezeBrightness = .5;
+        deepFreezeColor.red = 61 * deepFreezeBrightness;
+        deepFreezeColor.green = 113 * deepFreezeBrightness;
+        deepFreezeColor.blue = 245 * deepFreezeBrightness;
 
         //Starbase 3001
-        starbaseColor.red = 0;
-        starbaseColor.green = 0;
-        starbaseColor.blue = 0;
+        float starbaseBrightness = .5;
+        starbaseColor.red = 18 * starbaseBrightness;
+        starbaseColor.green = 55 * starbaseBrightness;
+        starbaseColor.blue = 201 * starbaseBrightness;
         
 
     }
@@ -249,6 +264,14 @@ void ledUpdateTask()
                 {
                     ESP_LOGE(LED_CTRL_LOG_TAG, "|__Error is before: %s", error_ptr);
                 }
+
+                //Free the unparsed JSON struct that came in the queue
+                free(jsonMsgInfo->msgPtr);
+                free(jsonMsgInfo);
+                jsonMsgInfo = NULL;
+
+                ESP_LOGE(LED_CTRL_LOG_TAG, "Skipped bad JSON");
+
                 continue;
             }
 
@@ -648,7 +671,7 @@ void ledUpdateTask()
             worldName = NULL;
             worldPop = NULL;
        }
-       vTaskDelay(pdMS_TO_TICKS(2000));
+       //vTaskDelay(pdMS_TO_TICKS(100));
     }
     
     //If we for whatever reason exit the loop, we need to close the task
