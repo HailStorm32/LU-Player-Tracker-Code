@@ -224,7 +224,7 @@ int initSevenSegment()
 
     //Start update task
     xTaskCreatePinnedToCore(sevenSegUpdateTask, "seven_segment_update_task", SEG_UPDATE_STACK_SIZE, NULL, 11, NULL, 1);
-    //xTaskCreate(sevenSegUpdateTask, "seven_segment_update_task", SEG_UPDATE_STACK_SIZE, NULL, 11, NULL);
+    ////xTaskCreate(sevenSegUpdateTask, "seven_segment_update_task", SEG_UPDATE_STACK_SIZE, NULL, 11, NULL);
 
     return 0;
 }
@@ -367,14 +367,17 @@ void sevenSegUpdateTask()
 
     bool initalizedArray = false;
 
+    //uint8_t lastSegment = 0;
+
     //Subscribe to the watchdog
-    esp_task_wdt_add(NULL);
-    ESP_ERROR_CHECK(esp_task_wdt_status(NULL));
+    // esp_task_wdt_add(NULL);
+    // ESP_ERROR_CHECK(esp_task_wdt_status(NULL));
 
     while (true)
     {
         if (xQueueReceive(segmentUpdateQueue, &displaySegmentsUpdated, 0))
         {
+
             //Update our local copy of the array with the updated one
             memcpy(&displaySegmentsLocalCpy, displaySegmentsUpdated, sizeof(displaySegments));
 
@@ -397,23 +400,24 @@ void sevenSegUpdateTask()
                 {
                     if (displaySegmentsLocalCpy[digit][segment] == ON)
                     {
-                        //printf("\n\nDigit: %d | Seg: %d\n", digit, segment);
                         gpio_set_level(GPIO_TO_MUX_A0, segment & 1);
                         gpio_set_level(GPIO_TO_MUX_A1, (segment>>1) & 1);
                         gpio_set_level(GPIO_TO_MUX_A2, (segment>>2) & 1);
-                        //esp_task_wdt_reset_user(func_a_twdt_user_hdl);
-                        esp_task_wdt_reset();
-                        esp_rom_delay_us(1000);
-                        //vTaskDelay(pdMS_TO_TICKS(9));
+                       
+                        //esp_task_wdt_reset();
+                        //if(segment != 3)
+                       // {
+                            esp_rom_delay_us(1000);
+                        //}
                     }
-                    
-                    //vTaskDelay(10);
                 }
                 esp_rom_delay_us(1000);
-                //vTaskDelay(pdMS_TO_TICKS(5));
             }
-            //vTaskDelay(pdMS_TO_TICKS(10));
         }
+        // gpio_set_level(GPIO_TO_MUX_A0, lastSegment & 1);
+        // gpio_set_level(GPIO_TO_MUX_A1, (lastSegment>>1) & 1);
+        // gpio_set_level(GPIO_TO_MUX_A2, (lastSegment>>2) & 1);
+        // vTaskDelay(1);
     }
     
     //If we for whatever reason exit the loop, we need to close the task
