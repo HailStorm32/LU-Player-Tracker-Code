@@ -27,10 +27,10 @@ int app_main(void)
     // printf("TWDT initialized\n");
     
 
-    esp_log_level_set("MQTT_Control", ESP_LOG_NONE); //ESP_LOG_DEBUG
-    esp_log_level_set("Linked_List", ESP_LOG_NONE);  //ESP_LOG_INFO
-    esp_log_level_set("LED_Control", ESP_LOG_NONE);  //ESP_LOG_DEBUG
-    esp_log_level_set("Segment_Update", ESP_LOG_NONE);  //ESP_LOG_DEBUG
+    esp_log_level_set("MQTT_Control", ESP_LOG_DEBUG); //ESP_LOG_DEBUG
+    esp_log_level_set("Linked_List", ESP_LOG_WARN);  //ESP_LOG_INFO
+    esp_log_level_set("LED_Control", ESP_LOG_INFO);  //ESP_LOG_DEBUG
+    esp_log_level_set("Segment_Update", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
 
     initGPIO();
     initLedControl();
