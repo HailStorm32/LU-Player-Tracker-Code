@@ -264,11 +264,17 @@ void ledUpdateTask()
                 {
                     ESP_LOGE(LED_CTRL_LOG_TAG, "|__Error is before: %s", error_ptr);
                 }
+				
+				ESP_LOGD(LED_CTRL_LOG_TAG, "DEBUG: 1");
 
                 //Free the unparsed JSON struct that came in the queue
                 free(jsonMsgInfo->msgPtr);
+				ESP_LOGD(LED_CTRL_LOG_TAG, "DEBUG: 1.1");
                 free(jsonMsgInfo);
+                ESP_LOGD(LED_CTRL_LOG_TAG, "DEBUG: 1.2");
                 jsonMsgInfo = NULL;
+				
+				ESP_LOGD(LED_CTRL_LOG_TAG, "DEBUG: 2");
 
                 ESP_LOGE(LED_CTRL_LOG_TAG, "Skipped bad JSON");
 

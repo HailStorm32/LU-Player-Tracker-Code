@@ -99,28 +99,46 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 
 				msgDataPtr_t msgData = malloc(sizeof(msgData_t));
 				
+				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 1");
+				
 				if(msgData == NULL)
     			{
        				ESP_LOGE(MQTT_LOG_TAG, "ERROR: Unable to allocate memory for MQTT LL data");
         			return;
    				}
+				
+				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 2");
+				
 
 				msgData->msgId = event->msg_id;
+				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 2.1");
 				msgData->currentLength = event->data_len;
+				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 2.2");
 				msgData->topic = malloc(strlen(event->topic) + NULL_CHARS);
+				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 2.3");
 				msgData->msg = malloc(strlen(event->data) + NULL_CHARS);
+				
+				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 3");
+				
 
 				if(msgData->topic == NULL || msgData->msg == NULL)
     			{
        				ESP_LOGE(MQTT_LOG_TAG, "ERROR: Unable to allocate memory for MQTT LL data-msg and/or data->topic");
         			return;
    				}
+				
+				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 4");
 
 				//Copy over the topic and message data
 				strcpy(msgData->topic, event->topic);
+				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 4.1");
 				strcpy(msgData->msg, event->data);
+				
+				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 5");
 
 				LL_insertFirst(&linkedListHead, event->msg_id, msgData);
+				
+				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 6");
 			}
 			else   //strncmp(((msgDataPtr_t)resultNode->dataPtr)->topic, event->topic, event->topic_len) == 0 //Topic isnt sent in subsequent messages
 			{
