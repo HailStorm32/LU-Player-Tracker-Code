@@ -32,8 +32,10 @@ int initGPIO()
     ioConf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
     //Set as input mode
     ioConf.mode = GPIO_MODE_INPUT;
-    //Enable pull-up mode
-    ioConf.pull_up_en = 1;
+    //Disable pull-up mode
+    ioConf.pull_up_en = 0;
+    //Enable pull-down mode
+    ioConf.pull_down_en = 1;
     //Configure GPIO with the given settings
     gpio_config(&ioConf);
 
