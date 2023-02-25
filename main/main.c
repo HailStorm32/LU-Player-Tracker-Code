@@ -16,7 +16,7 @@
 
 int app_main(void)
 {
-    // esp_task_wdt_deinit();
+    esp_task_wdt_deinit();
     // // If the TWDT was not initialized automatically on startup, manually intialize it now
     // esp_task_wdt_config_t twdt_config = {
     //     .timeout_ms = TWDT_TIMEOUT_MS,
