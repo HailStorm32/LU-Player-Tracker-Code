@@ -1,4 +1,3 @@
-
 ![Photo of board](https://i.imgur.com/III7pWA.jpg)
 # Description
 This repository holds the code for the LU Player Tracker board. You can find the PCB repository [here](https://github.com/HailStorm32/LU-Player-Tracker-PCB). 
@@ -46,6 +45,8 @@ Example
 #define  WIFI_PASS  "wifiPassword123"
 ```
 3. Save and close the file
+
+<br>
 
 ### Flashing
 
@@ -120,3 +121,9 @@ password_file /etc/mosquitto/passwd
 # Use
 
 TBD
+
+
+
+---
+
+Credit to `FutronBob` for the map layout that inspired this project
