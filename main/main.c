@@ -11,6 +11,7 @@
 #include "esp_err.h"
 #include "esp_task_wdt.h"
 #include "httpServer.h"
+#include "flashStorage.h"
 
 #define TWDT_TIMEOUT_MS         3000
 #define TASK_RESET_PERIOD_MS    2000
@@ -33,11 +34,13 @@ int app_main(void)
     esp_log_level_set("Linked_List", ESP_LOG_WARN);  //ESP_LOG_INFO
     esp_log_level_set("LED_Control", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
     esp_log_level_set("Segment_Update", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
+    esp_log_level_set("Flash_Storage", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
 
     initGPIO();
     initLedControl();
+    initFlashStorage();
 
-    if( true)//gpio_get_level(GPIO_MODE_BTN) == HIGH)
+    if(gpio_get_level(GPIO_MODE_BTN) == HIGH)
     {
         changeSevenSegment(255, false);
         initWifiAP();

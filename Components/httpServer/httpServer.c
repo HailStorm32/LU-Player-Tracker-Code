@@ -7,6 +7,7 @@
 #include "nvs_flash.h"
 #include "httpServer.h"
 #include "string.h"
+#include "nvs.h"
 
 
 /* Constants */
@@ -59,7 +60,6 @@ void initHttpServer()
 /* Root URI handler */
 static esp_err_t root_handler(httpd_req_t *req)
 {
-    char val[30];
     // Prepare HTML response
     const char *html_response = "<html><head><title>Wi-Fi Credentials</title></head><body><form method='post' action='/save'>SSID: <input type='text' name='ssid'><br>Password: <input type='text' name='password'><br><br><input type='submit' value='Save'></form></body></html>";
     httpd_resp_set_type(req, HTML_CONTENT_TYPE);

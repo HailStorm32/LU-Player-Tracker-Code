@@ -73,7 +73,7 @@ void initWifiSta(void)
     {
         esp_netif_init(); //Initialize the lwIP TCP/IP stack 
 
-        nvs_flash_init(); //Initialize flash to store wifi credentials
+        //nvs_flash_init(); //Initialize flash to store wifi credentials
 
         esp_event_loop_create_default(); //Create a default event loop to listen for events
     }
@@ -145,7 +145,7 @@ void initWifiAP()
 
     esp_netif_init(); //Initialize the lwIP TCP/IP stack 
 
-    nvs_flash_init(); //Initialize flash to store wifi credentials
+    //nvs_flash_init(); //Initialize flash to store wifi credentials
 
     esp_event_loop_create_default(); //Create a default event loop to listen for events
 
