@@ -114,7 +114,13 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 2.1");
 				msgData->currentLength = event->data_len;
 				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 2.2");
-				msgData->topic = malloc(strlen(event->topic) + NULL_CHARS);
+				if(event->topic == NULL)
+				{
+					ESP_LOGE(MQTT_LOG_TAG, "event->topic is NULL");
+				}
+				ESP_LOGD(MQTT_LOG_TAG, "DEBUG topic: %s", event->topic);//
+				ESP_LOGD(MQTT_LOG_TAG, "DEBUG topic: %d", event->topic_len);//
+				msgData->topic = malloc(event->topic_len + NULL_CHARS);
 				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 2.3");
 				msgData->msg = malloc(strlen(event->data) + NULL_CHARS);
 				
@@ -130,7 +136,7 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 4");
 
 				//Copy over the topic and message data
-				strcpy(msgData->topic, event->topic);
+				strncpy(msgData->topic, event->topic, event->topic_len);
 				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 4.1");
 				strcpy(msgData->msg, event->data);
 				
