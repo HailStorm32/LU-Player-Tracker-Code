@@ -114,9 +114,13 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 2.1");
 				msgData->currentLength = event->data_len;
 				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 2.2");
-				if(event->topic == NULL)
+				
+				//If the topic or data is NULL, skip this data entirely
+				if(event->topic == NULL || event->data == NULL)
 				{
-					ESP_LOGE(MQTT_LOG_TAG, "event->topic is NULL");
+					ESP_LOGE(MQTT_LOG_TAG, "event->topic or event->data is NULL, skipping data...");
+					free(msgData);
+					break;
 				}
 				ESP_LOGD(MQTT_LOG_TAG, "DEBUG topic: %s", event->topic);//
 				ESP_LOGD(MQTT_LOG_TAG, "DEBUG topic: %d", event->topic_len);//
