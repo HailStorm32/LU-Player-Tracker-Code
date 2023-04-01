@@ -11,9 +11,10 @@
 
 
 /* Constants */
-#define TAG "static_page"
-#define HTML_CONTENT_TYPE "text/html"
-#define MAX_HTTP_RECV_BUFFER 1024 //512
+#define TAG                     "static_page"
+#define HTML_CONTENT_TYPE       "text/html"
+#define MAX_HTTP_RECV_BUFFER    1024 //512
+#define SSID_MAX_LEN            32
 
 /* Function prototypes */
 static esp_err_t root_handler(httpd_req_t *req);
@@ -61,7 +62,7 @@ void initHttpServer()
 static esp_err_t root_handler(httpd_req_t *req)
 {
     // Prepare HTML response
-    const char *html_response = "<html><head><title>Wi-Fi Credentials</title></head><body><form method='post' action='/save'>SSID: <input type='text' name='ssid'><br>Password: <input type='text' name='password'><br><br><input type='submit' value='Save'></form></body></html>";
+    const char *html_response = "<html><head><title>Wi-Fi Credentials</title></head><body><form method='post' action='/save'>SSID: <input type='text' maxlength='32' name='ssid'><br>Password: <input type='text' maxlength='64' name='password'><br><br><input type='submit' value='Save'></form></body></html>";
     httpd_resp_set_type(req, HTML_CONTENT_TYPE);
     httpd_resp_send(req, html_response, strlen(html_response));
     return ESP_OK;
