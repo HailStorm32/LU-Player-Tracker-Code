@@ -63,32 +63,75 @@ esp_err_t storeWifiCredentials(char *ssid, char *password)
 
 //TODO: get the size of the value and allocate the required space and return that pointer
 // https://docs.espressif.com/projects/esp-idf/en/v5.0/esp32s3/api-reference/storage/nvs_flash.html#_CPPv411nvs_get_str12nvs_handle_tPKcPcP6size_t
-esp_err_t load_wifi_credentials(char *ssid, char *password, size_t max_len)
+esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint8_t* passLen)
 {
     esp_err_t err;
-    nvs_handle_t nvs_handle;
+    nvs_handle_t nvsHandle;
+    size_t strLen = NULL;
+    
 
     // Open NVS namespace 
-    err = nvs_open(SETTINGS_NVS_NAMESPACE, NVS_READONLY, &nvs_handle);
+    err = nvs_open(SETTINGS_NVS_NAMESPACE, NVS_READONLY, &nvsHandle);
     if (err != ESP_OK) {
         return err;
     }
 
     // Read SSID and password from NVS
-    size_t len = max_len;
-    err = nvs_get_str(nvs_handle, "WIFI_ssid", ssid, &len);
-    if (err != ESP_OK) {
-        nvs_close(nvs_handle);
+
+    //Get SSID size
+    if (nvs_get_str(nvsHandle, "WIFI_ssid", NULL, &strLen) == ESP_OK)
+    {
+        *ssidLen = strLen;
+
+        ssid = malloc(strLen);
+
+        if (ssid == NULL)
+        {
+            ESP_LOGE(TAG, "Unable to allocate space for ssid");
+            nvs_close(nvsHandle);
+            return ESP_FAIL;
+        }
+
+        //Get SSID
+        nvs_get_str(nvsHandle, "WIFI_ssid", ssid, &strLen);
+    }
+    else   
+    {
+        nvs_close(nvsHandle);
+        ESP_LOGE(TAG, "Failed to retrieve password");
+        //TODO: Handle and report the different error types
+        // https://docs.espressif.com/projects/esp-idf/en/v5.0/esp32s3/api-reference/storage/nvs_flash.html#_CPPv411nvs_get_str12nvs_handle_tPKcPcP6size_t:~:text=includes%20zero%20terminator.-,Returns,-ESP_OK%20if%20the
         return err;
     }
-    len = max_len;
-    err = nvs_get_str(nvs_handle, "WIFI_pass", password, &len);
-    if (err != ESP_OK) {
-        nvs_close(nvs_handle);
+
+
+    //Get password size
+    if (nvs_get_str(nvsHandle, "WIFI_pass", NULL, &strLen) == ESP_OK)
+    {
+        *passLen = strLen;
+
+        ssid = malloc(strLen);
+
+        if (ssid == NULL)
+        {
+            ESP_LOGE(TAG, "Unable to allocate space for password");
+            nvs_close(nvsHandle);
+            return ESP_FAIL;
+        }
+
+        //Get SSID
+        nvs_get_str(nvsHandle, "WIFI_pass", password, &strLen);
+    }
+    else   
+    {
+        nvs_close(nvsHandle);
+        ESP_LOGE(TAG, "Failed to retrieve password");
+        //TODO: Handle and report the different error types
+        // https://docs.espressif.com/projects/esp-idf/en/v5.0/esp32s3/api-reference/storage/nvs_flash.html#_CPPv411nvs_get_str12nvs_handle_tPKcPcP6size_t:~:text=includes%20zero%20terminator.-,Returns,-ESP_OK%20if%20the
         return err;
     }
 
     // Close the NVS namespace handle
-    nvs_close(nvs_handle);
+    nvs_close(nvsHandle);
     return ESP_OK;
 }
