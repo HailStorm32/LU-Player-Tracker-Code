@@ -111,13 +111,20 @@ void initWifiSta(void)
         return;
     }
 
-    //Create wifi config
+    /*//Create wifi config
     wifi_config_t wifiConfig; 
     memcpy(wifiConfig.sta.ssid, ssid, ssidLen);
     memcpy(wifiConfig.sta.password, password, passLen);
 
     free(ssid);
-    free(password);
+    free(password);*/
+
+    wifi_config_t wifiConfig = {
+        .sta = {
+            .ssid = WIFI_SSID, 
+            .password = WIFI_PASS,
+        },
+    };
 
     //If we ran the AP, make sure its stopped before continuing
     if (APran)
