@@ -16,6 +16,9 @@
 #define TAG                     "static_page"
 #define HTML_CONTENT_TYPE       "text/html"
 #define MAX_HTTP_RECV_BUFFER    1024 //512
+#define RESP_BUFFER             ( (SSID_MAX_LEN * 2) +  (PASS_MAX_LEN * 2) )
+// #define SSID_BUFF_SIZE          ( SSID_MAX_LEN )
+// #define PASS_BUFF_SIZE          ( PASS_MAX_LEN )
 
 //const char *html_response = "<form method=\"post\" action=\"/save\">   <label for=\"ssid\">SSID:</label>   <input type=\"text\" id=\"ssid\" name=\"ssid\" maxlength=\"32\">   <span id=\"ssid-error\" style=\"color: red; display: none;\">Maximum length exceeded</span><br>    <label for=\"password\">Password:</label>   <input type=\"text\" id=\"password\" name=\"password\" maxlength=\"64\">   <span id=\"password-error\" style=\"color: red; display: none;\">Maximum length exceeded</span><br>    <input type=\"submit\" value=\"Save\"> </form>  <style>    .input-error {     display: none;     color: red;   }     input:invalid + .input-error {     display: inline;   } </style>  <script>    const ssidInput = document.getElementById(\"ssid\");   const passwordInput = document.getElementById(\"password\");    ssidInput.addEventListener(\"input\", validateInput);   passwordInput.addEventListener(\"input\", validateInput);     function validateInput(event) {     const input = event.target;     const error = document.getElementById(`${input.id}-error`);      if (input.value.length > input.maxLength) {       input.setCustomValidity(`Maximum length is ${input.maxLength}`);       error.style.display = \"inline\";     } else {       input.setCustomValidity(\"\");       error.style.display = \"none\";     }   } </script>";
 const char *html_response = "<html><head><title>Wi-Fi Credentials</title></head><body><form method='post' action='/save'>SSID: <input type='text' maxlength='32' name='ssid'><br>Password: <input type='text' maxlength='64' name='password'><br><br><input type='submit' value='Save'></form></body></html>";
@@ -74,12 +77,13 @@ static esp_err_t root_handler(httpd_req_t *req)
 /* Save URI handler */
 static esp_err_t save_handler(httpd_req_t *req)
 {
-    char* ssid = malloc(SSID_MAX_LEN);
-    char* password = malloc(PASS_MAX_LEN);
+    char* ssid      = malloc(SSID_MAX_LEN);
+    char* password  = malloc(PASS_MAX_LEN);
 
     if (ssid == NULL || password == NULL)
     {
        ESP_LOGE(TAG, "Unable to allocate memory for ssid and/or password");
+       return ESP_ERR_NO_MEM;
     }
 
     memset(ssid, '\0', SSID_MAX_LEN);
@@ -91,7 +95,9 @@ static esp_err_t save_handler(httpd_req_t *req)
     }
     else if (strcmp(req->uri, "/save") == 0)
     {
-        char buf[1024];//512
+        char buf[RESP_BUFFER];
+        memset(buf, '\0', RESP_BUFFER);
+
         int ret, remaining = req->content_len;
         while (remaining > 0)
         {
@@ -106,7 +112,7 @@ static esp_err_t save_handler(httpd_req_t *req)
             }
             remaining -= ret;
         }
-
+        ESP_LOG_BUFFER_HEXDUMP(TAG, buf, RESP_BUFFER, ESP_LOG_DEBUG);
         if (httpd_query_key_value(buf, "ssid", ssid, SSID_MAX_LEN) != ESP_OK ||
             httpd_query_key_value(buf, "password", password, PASS_MAX_LEN) != ESP_OK)
         {
