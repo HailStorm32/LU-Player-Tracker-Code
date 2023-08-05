@@ -3,6 +3,9 @@
 
 #include "esp_err.h"
 
+#define SSID_MAX_LEN            33 //Includes null terminator
+#define PASS_MAX_LEN            65 //Includes null terminator
+
 void initFlashStorage();
 
 esp_err_t storeWifiCredentials(char *ssid, char *password);

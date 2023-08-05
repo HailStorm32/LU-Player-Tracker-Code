@@ -83,8 +83,6 @@ esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint
     {
         *ssidLen = strLen;
 
-        ssid = malloc(strLen);
-
         if (ssid == NULL)
         {
             ESP_LOGE(TAG, "Unable to allocate space for ssid");
@@ -109,8 +107,6 @@ esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint
     if (nvs_get_str(nvsHandle, "WIFI_pass", NULL, &strLen) == ESP_OK)
     {
         *passLen = strLen;
-
-        ssid = malloc(strLen);
 
         if (ssid == NULL)
         {

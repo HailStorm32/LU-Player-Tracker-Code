@@ -16,11 +16,9 @@
 #define TAG                     "static_page"
 #define HTML_CONTENT_TYPE       "text/html"
 #define MAX_HTTP_RECV_BUFFER    1024 //512
-#define SSID_MAX_LEN            32
-#define PASS_MAX_LEN            64
 
-const char *html_response = "<form method=\"post\" action=\"/save\">   <label for=\"ssid\">SSID:</label>   <input type=\"text\" id=\"ssid\" name=\"ssid\" maxlength=\"32\">   <span id=\"ssid-error\" style=\"color: red; display: none;\">Maximum length exceeded</span><br>    <label for=\"password\">Password:</label>   <input type=\"text\" id=\"password\" name=\"password\" maxlength=\"64\">   <span id=\"password-error\" style=\"color: red; display: none;\">Maximum length exceeded</span><br>    <input type=\"submit\" value=\"Save\"> </form>  <style>    .input-error {     display: none;     color: red;   }     input:invalid + .input-error {     display: inline;   } </style>  <script>    const ssidInput = document.getElementById(\"ssid\");   const passwordInput = document.getElementById(\"password\");    ssidInput.addEventListener(\"input\", validateInput);   passwordInput.addEventListener(\"input\", validateInput);     function validateInput(event) {     const input = event.target;     const error = document.getElementById(`${input.id}-error`);      if (input.value.length > input.maxLength) {       input.setCustomValidity(`Maximum length is ${input.maxLength}`);       error.style.display = \"inline\";     } else {       input.setCustomValidity(\"\");       error.style.display = \"none\";     }   } </script>";
-//"<html><head><title>Wi-Fi Credentials</title></head><body><form method='post' action='/save'>SSID: <input type='text' maxlength='32' name='ssid'><br>Password: <input type='text' maxlength='64' name='password'><br><br><input type='submit' value='Save'></form></body></html>";
+//const char *html_response = "<form method=\"post\" action=\"/save\">   <label for=\"ssid\">SSID:</label>   <input type=\"text\" id=\"ssid\" name=\"ssid\" maxlength=\"32\">   <span id=\"ssid-error\" style=\"color: red; display: none;\">Maximum length exceeded</span><br>    <label for=\"password\">Password:</label>   <input type=\"text\" id=\"password\" name=\"password\" maxlength=\"64\">   <span id=\"password-error\" style=\"color: red; display: none;\">Maximum length exceeded</span><br>    <input type=\"submit\" value=\"Save\"> </form>  <style>    .input-error {     display: none;     color: red;   }     input:invalid + .input-error {     display: inline;   } </style>  <script>    const ssidInput = document.getElementById(\"ssid\");   const passwordInput = document.getElementById(\"password\");    ssidInput.addEventListener(\"input\", validateInput);   passwordInput.addEventListener(\"input\", validateInput);     function validateInput(event) {     const input = event.target;     const error = document.getElementById(`${input.id}-error`);      if (input.value.length > input.maxLength) {       input.setCustomValidity(`Maximum length is ${input.maxLength}`);       error.style.display = \"inline\";     } else {       input.setCustomValidity(\"\");       error.style.display = \"none\";     }   } </script>";
+const char *html_response = "<html><head><title>Wi-Fi Credentials</title></head><body><form method='post' action='/save'>SSID: <input type='text' maxlength='32' name='ssid'><br>Password: <input type='text' maxlength='64' name='password'><br><br><input type='submit' value='Save'></form></body></html>";
 
 /* Function prototypes */
 static esp_err_t root_handler(httpd_req_t *req);
@@ -76,8 +74,6 @@ static esp_err_t root_handler(httpd_req_t *req)
 /* Save URI handler */
 static esp_err_t save_handler(httpd_req_t *req)
 {
-    // TODO: Implement function to save Wi-Fi credentials to flash
-
     char* ssid = malloc(SSID_MAX_LEN);
     char* password = malloc(PASS_MAX_LEN);
 
@@ -95,7 +91,7 @@ static esp_err_t save_handler(httpd_req_t *req)
     }
     else if (strcmp(req->uri, "/save") == 0)
     {
-        char buf[512];
+        char buf[1024];//512
         int ret, remaining = req->content_len;
         while (remaining > 0)
         {
@@ -118,6 +114,8 @@ static esp_err_t save_handler(httpd_req_t *req)
             return ESP_FAIL;
         }
     }
+
+    ESP_LOGI(TAG, "Got:\nSSID: %s\nPASS: %s", ssid, password);
 
     //Store the credentials
     if(storeWifiCredentials(ssid, password) != ESP_OK)
