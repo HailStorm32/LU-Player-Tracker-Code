@@ -1,3 +1,4 @@
+
 ![Photo of board](https://i.imgur.com/III7pWA.jpg)
 # Description
 This repository holds the code for the LU Player Tracker board. You can find the PCB repository [here](https://github.com/HailStorm32/LU-Player-Tracker-PCB). 
@@ -120,9 +121,32 @@ password_file /etc/mosquitto/passwd
 
 # Use
 
-TBD
+#### Power Supply
+The board is powered via the 5.5mmx2.1mm barrel jack on the left side of the board. It requires a [5V 2A supply](https://www.amazon.com/gp/product/B0B6PQV88X).
+
+> The USB does **NOT** supply power, and is only for flashing and serial in/out
 
 
+
+#### Connecting to WiFi
+> *Currently only available on the `wifiConfigAP` branch*
+
+The board will allow you to enter your WiFi credentials via a website broadcasted by the board.
+
+ 1. Power on the board
+ 2. Then, while holding down the MODE button, briefly press the RESET button. 
+	 > *Its easier to press the reset button with a small flat object like a LEGO 1x4 tile*
+
+	 ![enter image description here](https://i.imgur.com/kQesXeW.png)
+ 3. Keep holding the MODE button until you see two solid dashed lines in the seven segment
+	 ![enter image description here](https://i.imgur.com/4qJ6HoI.png)
+ 4. Your board should now be broadcasting a hotspot with the name `LU Player Tracker`
+ 5. Connect to the hotspot with the password `LUisthebest`
+ 6. Navigate to `192.168.4.1`
+ 7. Enter your WiFi's SSID and password and click save
+ 8. You should get message saying your credentials are saved 
+ 9. Power cycle the board by either briefly pressing reset, or unplugging/plugging in the barrel jack
+ 10. A couple seconds after reboot, you should see the seven segment change to showing numbers and the world LEDs turning on (if they are populated) 
 
 ---
 
