@@ -10,6 +10,7 @@
 #include "freertos/task.h"
 #include "esp_err.h"
 #include "esp_task_wdt.h"
+#include "httpServer.h"
 
 #define TWDT_TIMEOUT_MS         3000
 #define TASK_RESET_PERIOD_MS    2000
@@ -36,11 +37,12 @@ int app_main(void)
     initGPIO();
     initLedControl();
 
-    if(gpio_get_level(GPIO_MODE_BTN) == HIGH)
+    if( true)//gpio_get_level(GPIO_MODE_BTN) == HIGH)
     {
         changeSevenSegment(255, false);
         initWifiAP();
-        vTaskDelay(12000);
+        initHttpServer();
+        vTaskDelay(120000);
     }
     
     initWifiSta();
