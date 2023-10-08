@@ -4,6 +4,7 @@
 #include "mqtt.h"
 #include "wifi.h"
 #include "ledControl.h"
+#include "sevenSegmentControl.h"
 #include "gpioControl.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -34,8 +35,14 @@ int app_main(void)
 
     initGPIO();
     initLedControl();
-    initWifiAP();
-    vTaskDelay(12000);
+
+    if(gpio_get_level(GPIO_MODE_BTN) == HIGH)
+    {
+        changeSevenSegment(255, false);
+        initWifiAP();
+        vTaskDelay(12000);
+    }
+    
     initWifiSta();
     initMqttClient();
 
