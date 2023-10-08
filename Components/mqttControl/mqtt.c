@@ -109,7 +109,7 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 				
 				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 2");
 				
-
+				
 				msgData->msgId = event->msg_id;
 				ESP_LOGD(MQTT_LOG_TAG, "DEBUG: 2.1");
 				msgData->currentLength = event->data_len;
