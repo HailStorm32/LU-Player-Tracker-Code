@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WiFi Settings</title>
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px 0px #000000;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        label, input {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        button {
+            cursor: pointer;
+            background-color: blue;
+            color: white;
+            border: none;
+            padding: 10px;
+            text-align: center;
+            border-radius: 5px;
+        }
+
+        #back-button {
+            background-color: grey;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <form id="wifi-form" method="post" action="/save">
+            <h1>WiFi Settings</h1>
+            <label for="ssid">SSID:</label>
+            <input type="text" id="ssid" name="ssid" placeholder="Enter SSID" maxlength="32">
+            
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" placeholder="Enter Password" maxlength="64">
+            
+            <button type="submit">Submit</button>
+        </form>
+        <a href="/">
+            <button id="back-button">Back to Main Page</button>
+        </a>
+    </div>
+</body>
+</html>
