@@ -1,4 +1,4 @@
-//Kudos to ChatGPT for this code. 
+//Kudos to ChatGPT for some of this code. 
 
 #include "esp_http_server.h"
 #include "esp_log.h"
@@ -18,6 +18,7 @@
 #define HTML_CONTENT_TYPE       "text/html"
 #define MAX_HTTP_RECV_BUFFER    1024 //512
 #define RESP_BUFFER             ( (SSID_MAX_LEN * 2) +  (PASS_MAX_LEN * 2) )
+#define ORIGIN_PAGE_LEN         20
 
 
 /* Get pointers to embedded HTML pages */
@@ -30,6 +31,7 @@ extern const uint8_t wifi_settings_html_end[]   asm("_binary_wifi_settings_html_
 
 const char *root_html_response = (char*)root_html_start;
 const char *wifi_html_response = (char*)wifi_settings_html_start;
+const char *saved_html_response = "<html><head><title>Saved</title></head><body>Info saved.</body></html>";
 
 
 /* Function prototypes */
@@ -66,9 +68,6 @@ static httpd_config_t httpd_config = HTTPD_DEFAULT_CONFIG();
 
 void initHttpServer()
 {
-    // Initialize NVS flash memory
-    //ESP_ERROR_CHECK(nvs_flash_init());
-    
     // Create HTTP server instance
     httpd_handle_t server = NULL;
     httpd_config.server_port = 80; // Port 80 for HTTP
@@ -109,6 +108,7 @@ static esp_err_t save_handler(httpd_req_t *req)
     char decodedPass[PASS_MAX_LEN];
     char ssid[SSID_MAX_LEN];
     char password[PASS_MAX_LEN];
+    char oringinPage[ORIGIN_PAGE_LEN];
 
     memset(ssid, '\0', SSID_MAX_LEN);
     memset(password, '\0', PASS_MAX_LEN);
@@ -141,6 +141,38 @@ static esp_err_t save_handler(httpd_req_t *req)
 
         ESP_LOG_BUFFER_HEXDUMP(TAG, buf, RESP_BUFFER, ESP_LOG_DEBUG);
 
+        // Get the origin page
+        if (httpd_query_key_value(buf, "origin_page", oringinPage, ORIGIN_PAGE_LEN) != ESP_OK)
+        {
+            httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to retrieve origin");
+            return ESP_FAIL;
+        }
+
+        // Pick the correct response page
+        if (strcmp(oringinPage, "wifi-settings") == 0)
+        {
+            httpd_resp_send(req, saved_html_response, strlen(saved_html_response));
+        }
+        else if (strcmp(oringinPage, "mqtt-settings") == 0)
+        {
+            //TODO: Process MQTT settings
+
+            httpd_resp_send(req, saved_html_response, strlen(saved_html_response));
+        }
+        else if (strcmp(oringinPage, "led-settings") == 0)
+        {
+            //TODO: Process LED settings
+
+            httpd_resp_send(req, saved_html_response, strlen(saved_html_response));
+        }
+        else
+        {
+            httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid origin page");
+            return ESP_FAIL;
+        }
+
+        
+
         if (httpd_query_key_value(buf, "ssid", ssid, SSID_MAX_LEN) != ESP_OK ||
             httpd_query_key_value(buf, "password", password, PASS_MAX_LEN) != ESP_OK)
         {
@@ -164,10 +196,10 @@ static esp_err_t save_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    // Send HTTP response
-    const char *html_response = "<html><head><title>Saved</title></head><body>Wi-Fi credentials saved.</body></html>";
-    httpd_resp_set_type(req, HTML_CONTENT_TYPE);
-    httpd_resp_send(req, html_response, strlen(html_response));
+    // // Send HTTP response
+    // const char *html_response = "<html><head><title>Saved</title></head><body>Info saved.</body></html>";
+    // httpd_resp_set_type(req, HTML_CONTENT_TYPE);
+    // httpd_resp_send(req, html_response, strlen(html_response));
 
     return ESP_OK;
 }

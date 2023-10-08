@@ -61,8 +61,6 @@ esp_err_t storeWifiCredentials(char *ssid, char *password)
     return ESP_OK;
 }
 
-//TODO: get the size of the value and allocate the required space and return that pointer
-// https://docs.espressif.com/projects/esp-idf/en/v5.0/esp32s3/api-reference/storage/nvs_flash.html#_CPPv411nvs_get_str12nvs_handle_tPKcPcP6size_t
 esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint8_t* passLen)
 {
     esp_err_t err;
