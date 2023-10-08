@@ -34,6 +34,8 @@ int app_main(void)
 
     initGPIO();
     initLedControl();
+    initWifiAP();
+    vTaskDelay(12000);
     initWifiSta();
     initMqttClient();
 
