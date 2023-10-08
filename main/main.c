@@ -35,7 +35,8 @@ int app_main(void)
     esp_log_level_set("LED_Control", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
     esp_log_level_set("Segment_Update", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
     esp_log_level_set("Flash_Storage", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
-     esp_log_level_set("static_page", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
+    esp_log_level_set("static_page", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
+    esp_log_level_set("WIFI", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
 
     initGPIO();
     initLedControl();
@@ -46,7 +47,10 @@ int app_main(void)
         changeSevenSegment(255, false);
         initWifiAP();
         initHttpServer();
-        vTaskDelay(120000);
+        while (true)
+        {
+            vTaskDelay(120);// TODO: Implement way for user to quit AP mode instead of forcing them to reboot
+        }
     }
     
     initWifiSta();

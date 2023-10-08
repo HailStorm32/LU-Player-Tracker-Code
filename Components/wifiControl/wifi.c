@@ -24,6 +24,8 @@ static uint8_t wifiRetryNum = 0; //Keep track of the number of times we have tri
 
 static bool APran = false;
 
+
+
 const char* WIFI_CTRL_LOG_TAG = "WIFI";
 
 
@@ -68,12 +70,22 @@ static void eventHandler(void* arg, esp_event_base_t eventBase, int32_t eventId,
 //Initalize wifi into station mode
 void initWifiSta(void)
 {    
-    char* ssid = "";
+    char* ssid;
     uint8_t ssidLen;
-    char* password = "";
+    char* password;
     uint8_t passLen;
 
     wifiEventGroup = xEventGroupCreate(); //Create and store the event group
+
+    //Allocate and zero space for ssid and password
+    ssid = (char*)calloc(SSID_MAX_LEN, sizeof(char));
+    password = (char*)calloc(PASS_MAX_LEN, sizeof(char));
+
+    if(ssid == NULL || password == NULL)
+    {
+        ESP_LOGE(WIFI_CTRL_LOG_TAG, "Unable to allocate memory for SSID or PASSWORD");
+        return;
+    }
 
     if (!APran)
     {
@@ -111,20 +123,29 @@ void initWifiSta(void)
         return;
     }
 
-    /*//Create wifi config
+    //Dont proceed if the credentials are empty
+    if(ssidLen == 0 || passLen == 0 )
+    {
+        ESP_LOGE(WIFI_CTRL_LOG_TAG, "Pulled empty credentials from storage");
+        return;
+    }
+
+    //Create wifi config
     wifi_config_t wifiConfig; 
     memcpy(wifiConfig.sta.ssid, ssid, ssidLen);
     memcpy(wifiConfig.sta.password, password, passLen);
 
     free(ssid);
-    free(password);*/
+    free(password);
 
-    wifi_config_t wifiConfig = {
-        .sta = {
-            .ssid = WIFI_SSID, 
-            .password = WIFI_PASS,
-        },
-    };
+    ESP_LOGD(WIFI_CTRL_LOG_TAG, "Values:\nSSID: %s\nPASS: %s", wifiConfig.sta.ssid, wifiConfig.sta.password);
+
+    // wifi_config_t wifiConfig = {
+    //     .sta = {
+    //         .ssid = WIFI_SSID, 
+    //         .password = WIFI_PASS,
+    //     },
+    // };
 
     //If we ran the AP, make sure its stopped before continuing
     if (APran)
@@ -149,11 +170,11 @@ void initWifiSta(void)
      * happened. */
     if (bits & WIFI_CONNECTED_BIT)
     {
-        ESP_LOGI(WIFI_CTRL_LOG_TAG, "Connected to ap SSID:%s password:%s", WIFI_SSID, WIFI_PASS);
+        ESP_LOGI(WIFI_CTRL_LOG_TAG, "Connected to ap SSID:%s password:%s", wifiConfig.sta.ssid, wifiConfig.sta.password);
     }
     else if (bits & WIFI_FAIL_BIT)
     {
-        ESP_LOGE(WIFI_CTRL_LOG_TAG, "Failed to connect to SSID:%s password:%s", WIFI_SSID, WIFI_PASS);
+        ESP_LOGE(WIFI_CTRL_LOG_TAG, "Failed to connect to SSID:%s password:%s", wifiConfig.sta.ssid, wifiConfig.sta.password);
     }
     else
     {
