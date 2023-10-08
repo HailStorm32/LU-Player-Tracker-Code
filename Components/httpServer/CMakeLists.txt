@@ -1,3 +1,5 @@
 idf_component_register(SRCS "httpServer.c"
                     INCLUDE_DIRS "include"
-                    PRIV_REQUIRES log nvs_flash esp_http_server flashStorage) #https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/build-system.html#example-of-component-requirements
+                    PRIV_REQUIRES log nvs_flash esp_http_server flashStorage
+                    EMBED_TXTFILES HTML/root.html HTML/wifi-settings.html ) #https://docs.espressif.com/projects/esp-idf/en/latest/esp32s3/api-guides/build-system.html#example-of-component-requirements
+                                                         #https://docs.espressif.com/projects/esp-idf/en/v5.0/esp32s3/api-guides/build-system.html?highlight=target_add_binary_data#embedding-binary-data

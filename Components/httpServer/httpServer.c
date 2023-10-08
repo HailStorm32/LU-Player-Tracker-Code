@@ -19,18 +19,37 @@
 #define MAX_HTTP_RECV_BUFFER    1024 //512
 #define RESP_BUFFER             ( (SSID_MAX_LEN * 2) +  (PASS_MAX_LEN * 2) )
 
-const char *html_response = "<form method=\"post\" action=\"/save\">   <label for=\"ssid\">SSID:</label>   <input type=\"text\" id=\"ssid\" name=\"ssid\" maxlength=\"32\">   <span id=\"ssid-error\" style=\"color: red; display: none;\">Maximum length exceeded</span><br>    <label for=\"password\">Password:</label>   <input type=\"text\" id=\"password\" name=\"password\" maxlength=\"64\">   <span id=\"password-error\" style=\"color: red; display: none;\">Maximum length exceeded</span><br>    <input type=\"submit\" value=\"Save\"> </form>  <style>    .input-error {     display: none;     color: red;   }     input:invalid + .input-error {     display: inline;   } </style>  <script>    const ssidInput = document.getElementById(\"ssid\");   const passwordInput = document.getElementById(\"password\");    ssidInput.addEventListener(\"input\", validateInput);   passwordInput.addEventListener(\"input\", validateInput);     function validateInput(event) {     const input = event.target;     const error = document.getElementById(`${input.id}-error`);      if (input.value.length > input.maxLength) {       input.setCustomValidity(`Maximum length is ${input.maxLength}`);       error.style.display = \"inline\";     } else {       input.setCustomValidity(\"\");       error.style.display = \"none\";     }   } </script>";
-//const char *html_response = "<html><head><title>Wi-Fi Credentials</title></head><body><form method='post' action='/save'>SSID: <input type='text' maxlength='32' name='ssid'><br>Password: <input type='text' maxlength='64' name='password'><br><br><input type='submit' value='Save'></form></body></html>";
+
+/* Get pointers to embedded HTML pages */
+extern const uint8_t root_html_start[] asm("_binary_root_html_start");
+extern const uint8_t root_html_end[]   asm("_binary_root_html_end");
+
+extern const uint8_t wifi_settings_html_start[] asm("_binary_wifi_settings_html_start");
+extern const uint8_t wifi_settings_html_end[]   asm("_binary_wifi_settings_html_end");
+
+
+const char *root_html_response = (char*)root_html_start;
+const char *wifi_html_response = (char*)wifi_settings_html_start;
+
 
 /* Function prototypes */
 static esp_err_t root_handler(httpd_req_t *req);
 static esp_err_t save_handler(httpd_req_t *req);
+static esp_err_t wifi_handler(httpd_req_t *req);
+static void urlDecode(char *dst, const char *src);
 
 /* URI handlers */
 static const httpd_uri_t root_uri = {
     .uri       = "/",
     .method    = HTTP_GET,
     .handler   = root_handler,
+    .user_ctx  = NULL
+};
+
+static const httpd_uri_t wifi_uri = {
+    .uri       = "/wifi-settings",
+    .method    = HTTP_GET,
+    .handler   = wifi_handler,
     .user_ctx  = NULL
 };
 
@@ -61,6 +80,7 @@ void initHttpServer()
     
     // Register URI handlers
     httpd_register_uri_handler(server, &root_uri);
+    httpd_register_uri_handler(server, &wifi_uri);
     httpd_register_uri_handler(server, &save_uri);
 }
 
@@ -69,39 +89,17 @@ static esp_err_t root_handler(httpd_req_t *req)
 {
     // Prepare HTML response
     httpd_resp_set_type(req, HTML_CONTENT_TYPE);
-    httpd_resp_send(req, html_response, strlen(html_response));
+    httpd_resp_send(req, root_html_response, strlen(root_html_response));
     return ESP_OK;
 }
 
-static void urlDecode(char *dst, const char *src) 
+/* Wi-Fi URI handler */
+static esp_err_t wifi_handler(httpd_req_t *req)
 {
-    char a, b;
-    while (*src) {
-        if ((*src == '%') &&
-            ((a = src[1]) && (b = src[2])) &&
-            (isxdigit(a) && isxdigit(b))) {
-            if (a >= 'a')
-                a -= 'a'-'A';
-            if (a >= 'A')
-                a -= ('A' - 10);
-            else
-                a -= '0';
-            if (b >= 'a')
-                b -= 'a'-'A';
-            if (b >= 'A')
-                b -= ('A' - 10);
-            else
-                b -= '0';
-            *dst++ = 16*a+b;
-            src+=3;
-        } else if (*src == '+') {
-            *dst++ = ' ';
-            src++;
-        } else {
-            *dst++ = *src++;
-        }
-    }
-    *dst++ = '\0';
+    // Prepare HTML response
+    httpd_resp_set_type(req, HTML_CONTENT_TYPE);
+    httpd_resp_send(req, wifi_html_response, strlen(wifi_html_response));
+    return ESP_OK;
 }
 
 /* Save URI handler */
@@ -119,7 +117,7 @@ static esp_err_t save_handler(httpd_req_t *req)
     
     if (strcmp(req->uri, "/") == 0)
     {
-        httpd_resp_send(req, html_response, strlen(html_response));
+        httpd_resp_send(req, root_html_response, strlen(root_html_response));
     }
     else if (strcmp(req->uri, "/save") == 0)
     {
@@ -172,4 +170,35 @@ static esp_err_t save_handler(httpd_req_t *req)
     httpd_resp_send(req, html_response, strlen(html_response));
 
     return ESP_OK;
+}
+
+static void urlDecode(char *dst, const char *src) 
+{
+    char a, b;
+    while (*src) {
+        if ((*src == '%') &&
+            ((a = src[1]) && (b = src[2])) &&
+            (isxdigit(a) && isxdigit(b))) {
+            if (a >= 'a')
+                a -= 'a'-'A';
+            if (a >= 'A')
+                a -= ('A' - 10);
+            else
+                a -= '0';
+            if (b >= 'a')
+                b -= 'a'-'A';
+            if (b >= 'A')
+                b -= ('A' - 10);
+            else
+                b -= '0';
+            *dst++ = 16*a+b;
+            src+=3;
+        } else if (*src == '+') {
+            *dst++ = ' ';
+            src++;
+        } else {
+            *dst++ = *src++;
+        }
+    }
+    *dst++ = '\0';
 }
