@@ -7,6 +7,6 @@ void initFlashStorage();
 
 esp_err_t store_wifi_credentials(char *ssid, char *password);
 
-esp_err_t load_wifi_credentials(char *ssid, char *password, size_t max_len);
+esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint8_t* passLen);
 
 #endif

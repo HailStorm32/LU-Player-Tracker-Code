@@ -5,6 +5,7 @@
 #include "nvs_flash.h"
 #include <string.h>
 #include "../../credentials.h"
+#include "flashStorage.h"
 
 const uint8_t WIFI_MAX_RETRY = 8; //Max times wifi will try to reconnect before failing
 
@@ -66,7 +67,12 @@ static void eventHandler(void* arg, esp_event_base_t eventBase, int32_t eventId,
 
 //Initalize wifi into station mode
 void initWifiSta(void)
-{
+{    
+    char* ssid = "";
+    uint8_t ssidLen;
+    char* password = "";
+    uint8_t passLen;
+
     wifiEventGroup = xEventGroupCreate(); //Create and store the event group
 
     if (!APran)
@@ -98,13 +104,22 @@ void initWifiSta(void)
     esp_event_handler_instance_t instanceGotIp;
     esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &eventHandler, NULL, &instanceGotIp);
 
-   wifi_config_t wifiConfig = {
-        .sta = {
-            .ssid = WIFI_SSID, 
-            .password = WIFI_PASS,
-        },
-    };
+    //Retreive wifi credentials from storage
+    if(loadWifiCredentials(ssid, password, &ssidLen, &passLen) != ESP_OK)
+    {
+        ESP_LOGE(WIFI_CTRL_LOG_TAG, "Unable to load WIFI credentials");
+        return;
+    }
 
+    //Create wifi config
+    wifi_config_t wifiConfig; 
+    memcpy(wifiConfig.sta.ssid, ssid, ssidLen);
+    memcpy(wifiConfig.sta.password, password, passLen);
+
+    free(ssid);
+    free(password);
+
+    //If we ran the AP, make sure its stopped before continuing
     if (APran)
     {
         esp_wifi_stop();
@@ -131,7 +146,7 @@ void initWifiSta(void)
     }
     else if (bits & WIFI_FAIL_BIT)
     {
-        ESP_LOGI(WIFI_CTRL_LOG_TAG, "Failed to connect to SSID:%s password:%s", WIFI_SSID, WIFI_PASS);
+        ESP_LOGE(WIFI_CTRL_LOG_TAG, "Failed to connect to SSID:%s password:%s", WIFI_SSID, WIFI_PASS);
     }
     else
     {
