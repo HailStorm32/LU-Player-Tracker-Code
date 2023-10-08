@@ -35,6 +35,7 @@ int app_main(void)
     esp_log_level_set("LED_Control", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
     esp_log_level_set("Segment_Update", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
     esp_log_level_set("Flash_Storage", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
+     esp_log_level_set("static_page", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
 
     initGPIO();
     initLedControl();
