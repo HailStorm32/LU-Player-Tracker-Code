@@ -149,8 +149,32 @@ static esp_err_t save_handler(httpd_req_t *req)
         }
 
         // Pick the correct response page
+
         if (strcmp(oringinPage, "wifi-settings") == 0)
         {
+            // Get the SSID and password
+            if (httpd_query_key_value(buf, "ssid", ssid, SSID_MAX_LEN) != ESP_OK ||
+                httpd_query_key_value(buf, "password", password, PASS_MAX_LEN) != ESP_OK)
+            {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parameters");
+                return ESP_FAIL;
+            }
+
+            ESP_LOGI(TAG, "Got (before decode):\nSSID: %s\nPASS: %s", ssid, password);
+
+            //Decode the URLdecoded credentials
+            urlDecode(decodedSSID, ssid);
+            urlDecode(decodedPass, password);
+
+            ESP_LOGI(TAG, "Got (after decode):\nSSID: %s\nPASS: %s", decodedSSID, decodedPass);
+
+            //Store the credentials
+            if(storeWifiCredentials(decodedSSID, decodedPass) != ESP_OK)
+            {
+                ESP_LOGE(TAG, "Unable to store ssid and/or password");
+                return ESP_FAIL;
+            }
+
             httpd_resp_send(req, saved_html_response, strlen(saved_html_response));
         }
         else if (strcmp(oringinPage, "mqtt-settings") == 0)
@@ -170,36 +194,7 @@ static esp_err_t save_handler(httpd_req_t *req)
             httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid origin page");
             return ESP_FAIL;
         }
-
-        
-
-        if (httpd_query_key_value(buf, "ssid", ssid, SSID_MAX_LEN) != ESP_OK ||
-            httpd_query_key_value(buf, "password", password, PASS_MAX_LEN) != ESP_OK)
-        {
-            httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parameters");
-            return ESP_FAIL;
-        }
     }
-
-    ESP_LOGI(TAG, "Got (before decode):\nSSID: %s\nPASS: %s", ssid, password);
-
-    //Decode the URLdecoded credentials
-    urlDecode(decodedSSID, ssid);
-    urlDecode(decodedPass, password);
-
-    ESP_LOGI(TAG, "Got (after decode):\nSSID: %s\nPASS: %s", decodedSSID, decodedPass);
-
-    //Store the credentials
-    if(storeWifiCredentials(decodedSSID, decodedPass) != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Unable to store ssid and/or password");
-        return ESP_FAIL;
-    }
-
-    // // Send HTTP response
-    // const char *html_response = "<html><head><title>Saved</title></head><body>Info saved.</body></html>";
-    // httpd_resp_set_type(req, HTML_CONTENT_TYPE);
-    // httpd_resp_send(req, html_response, strlen(html_response));
 
     return ESP_OK;
 }
