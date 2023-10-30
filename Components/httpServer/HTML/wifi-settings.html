@@ -55,7 +55,8 @@
             
             <button type="submit">Submit</button>
 
-            <input type="hidden" name="origin_page" value="wifi-settings">
+            <input type="hidden" name="origin_page" value="wifi-settings"> <!-- This is a hidden input field that will be sent to the "server". It will be used to determine what page the data came from. -->
+            <input type="hidden" name="data_type" value="credentials"> <!-- This is a hidden input field that will be sent to the "server". It will be used to determine what type of data we need to process. -->
         </form>
         <a href="/">
             <button id="back-button">Back to Main Page</button>

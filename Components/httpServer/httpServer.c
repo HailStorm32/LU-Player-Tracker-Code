@@ -19,6 +19,7 @@
 #define MAX_HTTP_RECV_BUFFER    1024 //512
 #define RESP_BUFFER             ( (SSID_MAX_LEN * 2) +  (PASS_MAX_LEN * 2) )
 #define ORIGIN_PAGE_LEN         20
+#define DATA_TYPE_LEN           20
 
 
 /* Get pointers to embedded HTML pages */
@@ -109,6 +110,7 @@ static esp_err_t save_handler(httpd_req_t *req)
     char ssid[SSID_MAX_LEN];
     char password[PASS_MAX_LEN];
     char oringinPage[ORIGIN_PAGE_LEN];
+    char dataType[DATA_TYPE_LEN];
 
     memset(ssid, '\0', SSID_MAX_LEN);
     memset(password, '\0', PASS_MAX_LEN);
@@ -148,34 +150,50 @@ static esp_err_t save_handler(httpd_req_t *req)
             return ESP_FAIL;
         }
 
+        // Get the data type
+        if (httpd_query_key_value(buf, "data_type", dataType, DATA_TYPE_LEN) != ESP_OK)
+        {
+            httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to retrieve data type");
+            return ESP_FAIL;
+        }
+
         // Pick the correct response page
 
         if (strcmp(oringinPage, "wifi-settings") == 0)
         {
-            // Get the SSID and password
-            if (httpd_query_key_value(buf, "ssid", ssid, SSID_MAX_LEN) != ESP_OK ||
-                httpd_query_key_value(buf, "password", password, PASS_MAX_LEN) != ESP_OK)
+            if(strcmp(dataType, "credentials") == 0)
             {
-                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parameters");
+                // Get the SSID and password
+                if (httpd_query_key_value(buf, "ssid", ssid, SSID_MAX_LEN) != ESP_OK ||
+                    httpd_query_key_value(buf, "password", password, PASS_MAX_LEN) != ESP_OK)
+                {
+                    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parameters");
+                    return ESP_FAIL;
+                }
+
+                ESP_LOGI(TAG, "Got (before decode):\nSSID: %s\nPASS: %s", ssid, password);
+
+                //Decode the URLdecoded credentials
+                urlDecode(decodedSSID, ssid);
+                urlDecode(decodedPass, password);
+
+                ESP_LOGI(TAG, "Got (after decode):\nSSID: %s\nPASS: %s", decodedSSID, decodedPass);
+
+                //Store the credentials
+                if(storeWifiCredentials(decodedSSID, decodedPass) != ESP_OK)
+                {
+                    ESP_LOGE(TAG, "Unable to store ssid and/or password");
+                    return ESP_FAIL;
+                }
+
+                httpd_resp_send(req, saved_html_response, strlen(saved_html_response));
+            }
+            else
+            {
+                httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid data type");
                 return ESP_FAIL;
             }
-
-            ESP_LOGI(TAG, "Got (before decode):\nSSID: %s\nPASS: %s", ssid, password);
-
-            //Decode the URLdecoded credentials
-            urlDecode(decodedSSID, ssid);
-            urlDecode(decodedPass, password);
-
-            ESP_LOGI(TAG, "Got (after decode):\nSSID: %s\nPASS: %s", decodedSSID, decodedPass);
-
-            //Store the credentials
-            if(storeWifiCredentials(decodedSSID, decodedPass) != ESP_OK)
-            {
-                ESP_LOGE(TAG, "Unable to store ssid and/or password");
-                return ESP_FAIL;
-            }
-
-            httpd_resp_send(req, saved_html_response, strlen(saved_html_response));
+            
         }
         else if (strcmp(oringinPage, "mqtt-settings") == 0)
         {
