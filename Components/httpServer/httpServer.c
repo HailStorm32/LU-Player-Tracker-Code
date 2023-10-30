@@ -29,10 +29,14 @@ extern const uint8_t root_html_end[]   asm("_binary_root_html_end");
 extern const uint8_t wifi_settings_html_start[] asm("_binary_wifi_settings_html_start");
 extern const uint8_t wifi_settings_html_end[]   asm("_binary_wifi_settings_html_end");
 
+extern const uint8_t saved_page_html_start[] asm("_binary_saved_page_html_start");
+extern const uint8_t saved_page_html_end[]   asm("_binary_saved_page_html_end");
+
+
 
 const char *root_html_response = (char*)root_html_start;
 const char *wifi_html_response = (char*)wifi_settings_html_start;
-const char *saved_html_response = "<html><head><title>Saved</title></head><body>Info saved.</body></html>";
+const char *saved_html_response = (char*)saved_page_html_start;
 
 
 /* Function prototypes */
