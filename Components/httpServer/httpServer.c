@@ -32,17 +32,27 @@ extern const uint8_t wifi_settings_html_end[]   asm("_binary_wifi_settings_html_
 extern const uint8_t saved_page_html_start[] asm("_binary_saved_page_html_start");
 extern const uint8_t saved_page_html_end[]   asm("_binary_saved_page_html_end");
 
+extern const uint8_t mqtt_settings_html_start[] asm("_binary_mqtt_settings_html_start");
+extern const uint8_t mqtt_settings_html_end[]   asm("_binary_mqtt_settings_html_end");
+
+extern const uint8_t led_settings_html_start[] asm("_binary_led_settings_html_start");
+extern const uint8_t led_settings_html_end[]   asm("_binary_led_settings_html_end");
+
 
 
 const char *root_html_response = (char*)root_html_start;
 const char *wifi_html_response = (char*)wifi_settings_html_start;
 const char *saved_html_response = (char*)saved_page_html_start;
+const char *mqtt_html_response = (char*)mqtt_settings_html_start;
+const char *led_html_response = (char*)led_settings_html_start;
 
 
 /* Function prototypes */
 static esp_err_t root_handler(httpd_req_t *req);
 static esp_err_t save_handler(httpd_req_t *req);
 static esp_err_t wifi_handler(httpd_req_t *req);
+static esp_err_t mqtt_handler(httpd_req_t *req);
+static esp_err_t led_handler(httpd_req_t *req);
 static void urlDecode(char *dst, const char *src);
 
 /* URI handlers */
@@ -67,6 +77,20 @@ static const httpd_uri_t save_uri = {
     .user_ctx  = NULL
 };
 
+static const httpd_uri_t mqtt_uri = {
+    .uri       = "/mqtt-settings",
+    .method    = HTTP_GET,
+    .handler   = mqtt_handler,
+    .user_ctx  = NULL
+};
+
+static const httpd_uri_t led_uri = {
+    .uri       = "/led-settings",
+    .method    = HTTP_GET,
+    .handler   = led_handler,
+    .user_ctx  = NULL
+};
+
 /* HTTP server config */
 static httpd_config_t httpd_config = HTTPD_DEFAULT_CONFIG();
 
@@ -86,6 +110,8 @@ void initHttpServer()
     httpd_register_uri_handler(server, &root_uri);
     httpd_register_uri_handler(server, &wifi_uri);
     httpd_register_uri_handler(server, &save_uri);
+    httpd_register_uri_handler(server, &mqtt_uri);
+    httpd_register_uri_handler(server, &led_uri);
 }
 
 /* Root URI handler */
@@ -103,6 +129,24 @@ static esp_err_t wifi_handler(httpd_req_t *req)
     // Prepare HTML response
     httpd_resp_set_type(req, HTML_CONTENT_TYPE);
     httpd_resp_send(req, wifi_html_response, strlen(wifi_html_response));
+    return ESP_OK;
+}
+
+/* MQTT URI handler */
+static esp_err_t mqtt_handler(httpd_req_t *req)
+{
+    // Prepare HTML response
+    httpd_resp_set_type(req, HTML_CONTENT_TYPE);
+    httpd_resp_send(req, mqtt_html_response, strlen(mqtt_html_response));
+    return ESP_OK;
+}
+
+/* LED URI handler */
+static esp_err_t led_handler(httpd_req_t *req)
+{
+    // Prepare HTML response
+    httpd_resp_set_type(req, HTML_CONTENT_TYPE);
+    httpd_resp_send(req, led_html_response, strlen(led_html_response));
     return ESP_OK;
 }
 
