@@ -40,11 +40,11 @@ extern const uint8_t led_settings_html_end[]   asm("_binary_led_settings_html_en
 
 
 
-const char *root_html_response = (char*)root_html_start;
-const char *wifi_html_response = (char*)wifi_settings_html_start;
-const char *saved_html_response = (char*)saved_page_html_start;
-const char *mqtt_html_response = (char*)mqtt_settings_html_start;
-const char *led_html_response = (char*)led_settings_html_start;
+char *root_html_response = NULL;
+char *wifi_html_response = NULL;
+char *saved_html_response = NULL;
+char *mqtt_html_response = NULL;
+char *led_html_response = NULL;
 
 
 /* Function prototypes */
@@ -97,6 +97,32 @@ static httpd_config_t httpd_config = HTTPD_DEFAULT_CONFIG();
 
 void initHttpServer()
 {
+    root_html_response = malloc((root_html_end - root_html_start));
+    wifi_html_response = malloc((wifi_settings_html_end - wifi_settings_html_start));
+    saved_html_response = malloc((saved_page_html_end - saved_page_html_start));
+    mqtt_html_response = malloc((mqtt_settings_html_end - mqtt_settings_html_start));
+    led_html_response = malloc((led_settings_html_end - led_settings_html_start));
+
+    if (root_html_response == NULL || wifi_html_response == NULL || saved_html_response == NULL || mqtt_html_response == NULL || led_html_response == NULL)
+    {
+        ESP_LOGE(TAG, "Unable to allocate memory for html responses");
+        return;
+    }
+
+    memcpy(root_html_response, root_html_start, (root_html_end - root_html_start));
+    memcpy(wifi_html_response, wifi_settings_html_start, (wifi_settings_html_end - wifi_settings_html_start));
+    memcpy(saved_html_response, saved_page_html_start, (saved_page_html_end - saved_page_html_start));
+    memcpy(mqtt_html_response, mqtt_settings_html_start, (mqtt_settings_html_end - mqtt_settings_html_start));
+    memcpy(led_html_response, led_settings_html_start, (led_settings_html_end - led_settings_html_start));
+    
+
+    // ESP_LOG_BUFFER_HEXDUMP(TAG, root_html_response, strlen(root_html_response)+8, ESP_LOG_DEBUG);
+    // ESP_LOGI(TAG, "Starting Addr: 0x%x", (int)root_html_start);
+    // ESP_LOGI(TAG, "End Addr: 0x%x", (int)root_html_end);
+    // ESP_LOGI(TAG, "Size: %d bytes", (root_html_end - root_html_start) );
+    // ESP_LOGI(TAG, "LEn Size: %d bytes", strlen(root_html_response) );
+
+
     // Create HTTP server instance
     httpd_handle_t server = NULL;
     httpd_config.server_port = 80; // Port 80 for HTTP
