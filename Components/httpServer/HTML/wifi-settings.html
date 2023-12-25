@@ -41,12 +41,37 @@
         #back-button {
             background-color: grey;
         }
+
+        #current-ssid {
+            background-color: #e9e9e9;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        #current-ssid h2 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        #saved-ssid {
+            background-color: #f0f0f0;
+            border: 1px solid #8c8a8a;
+        }
+
+
     </style>
 </head>
 <body>
     <div class="container">
+        <div id="current-ssid">
+            <h2>Current WiFi Settings: </h2>
+            <label for="saved-ssid">SSID:</label>
+            <input type="text" id="saved-ssid" name="saved-ssid" value="%stored-ssid%" readonly>
+        </div>
+
         <form id="wifi-form" method="post" action="/save">
-            <h1>WiFi Settings</h1>
+            <h1>Change WiFi Settings</h1>
             <label for="ssid">SSID:</label>
             <input type="text" id="ssid" name="ssid" placeholder="Enter SSID" maxlength="32">
             
