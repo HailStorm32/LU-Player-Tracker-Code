@@ -3,6 +3,8 @@
 #include "nvs.h"
 #include "flashStorage.h"
 
+#include <string.h>
+
 #define TAG                     "Flash_Storage"
 #define SETTINGS_NVS_NAMESPACE  "userSettings"
 
@@ -83,7 +85,7 @@ esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint
 
         if (ssid == NULL)
         {
-            ESP_LOGE(TAG, "Unable to allocate space for ssid");
+            ESP_LOGE(TAG, "Given SSID buffer is NULL");
             nvs_close(nvsHandle);
             return ESP_FAIL;
         }
@@ -106,14 +108,14 @@ esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint
     {
         *passLen = strLen;
 
-        if (ssid == NULL)
+        if (password == NULL)
         {
-            ESP_LOGE(TAG, "Unable to allocate space for password");
+            ESP_LOGE(TAG, "Given password buffer is NULL");
             nvs_close(nvsHandle);
             return ESP_FAIL;
         }
 
-        //Get SSID
+        //Get password
         nvs_get_str(nvsHandle, "WIFI_pass", password, &strLen);
     }
     else   
