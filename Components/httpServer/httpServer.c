@@ -9,6 +9,7 @@
 #include "string.h"
 //#include "nvs.h"
 #include "flashStorage.h"
+#include "htmlFill.h"
 #include <math.h>
 #include <ctype.h>
 
@@ -23,20 +24,20 @@
 
 
 /* Get pointers to embedded HTML pages */
-extern const uint8_t root_html_start[] asm("_binary_root_html_start");
-extern const uint8_t root_html_end[]   asm("_binary_root_html_end");
+extern const uint8_t root_html_tmpl_start[] asm("_binary_root_html_start");
+extern const uint8_t root_html_tmpl_end[]   asm("_binary_root_html_end");
 
-extern const uint8_t wifi_settings_html_start[] asm("_binary_wifi_settings_html_start");
-extern const uint8_t wifi_settings_html_end[]   asm("_binary_wifi_settings_html_end");
+extern const uint8_t wifi_settings_html_tmpl_start[] asm("_binary_wifi_settings_html_start");
+extern const uint8_t wifi_settings_html_tmpl_end[]   asm("_binary_wifi_settings_html_end");
 
-extern const uint8_t saved_page_html_start[] asm("_binary_saved_page_html_start");
-extern const uint8_t saved_page_html_end[]   asm("_binary_saved_page_html_end");
+extern const uint8_t saved_page_html_tmpl_start[] asm("_binary_saved_page_html_start");
+extern const uint8_t saved_page_html_tmpl_end[]   asm("_binary_saved_page_html_end");
 
-extern const uint8_t mqtt_settings_html_start[] asm("_binary_mqtt_settings_html_start");
-extern const uint8_t mqtt_settings_html_end[]   asm("_binary_mqtt_settings_html_end");
+extern const uint8_t mqtt_settings_html_tmpl_start[] asm("_binary_mqtt_settings_html_start");
+extern const uint8_t mqtt_settings_html_tmpl_end[]   asm("_binary_mqtt_settings_html_end");
 
-extern const uint8_t led_settings_html_start[] asm("_binary_led_settings_html_start");
-extern const uint8_t led_settings_html_end[]   asm("_binary_led_settings_html_end");
+extern const uint8_t led_settings_html_tmpl_start[] asm("_binary_led_settings_html_start");
+extern const uint8_t led_settings_html_tmpl_end[]   asm("_binary_led_settings_html_end");
 
 
 
@@ -97,29 +98,29 @@ static httpd_config_t httpd_config = HTTPD_DEFAULT_CONFIG();
 
 void initHttpServer()
 {
-    root_html_response = malloc((root_html_end - root_html_start));
-    wifi_html_response = malloc((wifi_settings_html_end - wifi_settings_html_start));
-    saved_html_response = malloc((saved_page_html_end - saved_page_html_start));
-    mqtt_html_response = malloc((mqtt_settings_html_end - mqtt_settings_html_start));
-    led_html_response = malloc((led_settings_html_end - led_settings_html_start));
+    root_html_response = malloc((root_html_tmpl_end - root_html_tmpl_start));
+    
+    saved_html_response = malloc((saved_page_html_tmpl_end - saved_page_html_tmpl_start));
+    mqtt_html_response = malloc((mqtt_settings_html_tmpl_end - mqtt_settings_html_tmpl_start));
+    led_html_response = malloc((led_settings_html_tmpl_end - led_settings_html_tmpl_start));
 
-    if (root_html_response == NULL || wifi_html_response == NULL || saved_html_response == NULL || mqtt_html_response == NULL || led_html_response == NULL)
+    if (root_html_response == NULL || saved_html_response == NULL || mqtt_html_response == NULL || led_html_response == NULL)
     {
         ESP_LOGE(TAG, "Unable to allocate memory for html responses");
         return;
     }
 
-    memcpy(root_html_response, root_html_start, (root_html_end - root_html_start));
-    memcpy(wifi_html_response, wifi_settings_html_start, (wifi_settings_html_end - wifi_settings_html_start));
-    memcpy(saved_html_response, saved_page_html_start, (saved_page_html_end - saved_page_html_start));
-    memcpy(mqtt_html_response, mqtt_settings_html_start, (mqtt_settings_html_end - mqtt_settings_html_start));
-    memcpy(led_html_response, led_settings_html_start, (led_settings_html_end - led_settings_html_start));
+    memcpy(root_html_response, root_html_tmpl_start, (root_html_tmpl_end - root_html_tmpl_start));
+
+    memcpy(saved_html_response, saved_page_html_tmpl_start, (saved_page_html_tmpl_end - saved_page_html_tmpl_start));
+    memcpy(mqtt_html_response, mqtt_settings_html_tmpl_start, (mqtt_settings_html_tmpl_end - mqtt_settings_html_tmpl_start));
+    memcpy(led_html_response, led_settings_html_tmpl_start, (led_settings_html_tmpl_end - led_settings_html_tmpl_start));
     
 
     // ESP_LOG_BUFFER_HEXDUMP(TAG, root_html_response, strlen(root_html_response)+8, ESP_LOG_DEBUG);
-    // ESP_LOGI(TAG, "Starting Addr: 0x%x", (int)root_html_start);
-    // ESP_LOGI(TAG, "End Addr: 0x%x", (int)root_html_end);
-    // ESP_LOGI(TAG, "Size: %d bytes", (root_html_end - root_html_start) );
+    // ESP_LOGI(TAG, "Starting Addr: 0x%x", (int)root_html_tmpl_start);
+    // ESP_LOGI(TAG, "End Addr: 0x%x", (int)root_html_tmpl_end);
+    // ESP_LOGI(TAG, "Size: %d bytes", (root_html_tmpl_end - root_html_tmpl_start) );
     // ESP_LOGI(TAG, "LEn Size: %d bytes", strlen(root_html_response) );
 
 
@@ -152,9 +153,23 @@ static esp_err_t root_handler(httpd_req_t *req)
 /* Wi-Fi URI handler */
 static esp_err_t wifi_handler(httpd_req_t *req)
 {
+    // Allocate memory for the HTML template response
+    wifi_html_response = malloc((wifi_settings_html_tmpl_end - wifi_settings_html_tmpl_start));
+    if (wifi_html_response == NULL)
+    {
+        ESP_LOGE(TAG, "Unable to allocate memory for wifi html response");
+        return ESP_FAIL;
+    }
+    memcpy(wifi_html_response, wifi_settings_html_tmpl_start, (wifi_settings_html_tmpl_end - wifi_settings_html_tmpl_start));
+
+    fillWifiHtmlTmpl(&wifi_html_response);
+
     // Prepare HTML response
     httpd_resp_set_type(req, HTML_CONTENT_TYPE);
     httpd_resp_send(req, wifi_html_response, strlen(wifi_html_response));
+
+    free(wifi_html_response);
+
     return ESP_OK;
 }
 

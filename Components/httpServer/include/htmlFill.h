@@ -1,1 +1,1 @@
-void fillWifiHtml(char *htmlCodeBuffer);
+void fillWifiHtmlTmpl(char **htmlCodeBuffer);

@@ -11,7 +11,8 @@
 #define MQTT_NUM_KEYS       0
 #define LED_NUM_KEYS        0
 
-//TODO: Verify that this works as intended
+char * searchAndReplace(char *str, char *search, char *replace);
+
 char * searchAndReplace(char *str, char *search, char *replace)
 {
     char *pos, *temp;
@@ -47,11 +48,8 @@ char * searchAndReplace(char *str, char *search, char *replace)
     return str;
 }
 
-void fillWifiHtml(char *htmlCodeBuffer)
+void fillWifiHtmlTmpl(char **htmlCodeBuffer)
 {
-    uint32_t length = strlen(htmlCodeBuffer);
-
-    // Check to see if there is a stored SSID and password
     char ssid[SSID_MAX_LEN];
     char password[PASS_MAX_LEN];
     uint8_t ssidLen = 0;
@@ -59,31 +57,30 @@ void fillWifiHtml(char *htmlCodeBuffer)
 
     esp_err_t err = loadWifiCredentials(ssid, password, &ssidLen, &passLen);
 
-    // If there is a stored SSID and password, fill the HTML code with it
-    if (err == ESP_OK && ssidLen != 0)
+    if (err != ESP_OK)
+    {
+        return;
+    }
+    
+    //Fill in and replace the keys in the HTML template
+
+    if (ssidLen != 0)
     {   
-        // Copy the HTML code to a new temporary string
-        char htmlCodeCopy[length];
-        strcpy(htmlCodeCopy, htmlCodeBuffer);
-
-        // Determine the new size of the HTML code and reallocate the buffer
-        uint32_t newLength = (length - TEMPLATE_KEY_LEN) + ssidLen;
-        
-        if(newLength > length)
-        {
-            //TODO: realocate buffer, then search, move the string up, then replace
-        }
-        else
-        {
-            //TODO: search and replace, move the string down, then realocate buffer
-        }
-
-
-
+        // Replace the SSID key with the stored SSID
+        *htmlCodeBuffer = searchAndReplace(*htmlCodeBuffer, "%001%", ssid);
+    }
+    else
+    {
+        *htmlCodeBuffer = searchAndReplace(*htmlCodeBuffer, "%001%", "%NOT SET%");
     }
 
-
-
-
-
+    if (passLen != 0)
+    {   
+        // Replace the password key with the stored password
+        *htmlCodeBuffer = searchAndReplace(*htmlCodeBuffer, "%002%", password);
+    }
+    else
+    {
+        *htmlCodeBuffer = searchAndReplace(*htmlCodeBuffer, "%002%", "%NOT SET%");
+    }
 }
