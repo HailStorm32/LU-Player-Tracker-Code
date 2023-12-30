@@ -50,8 +50,8 @@ char * searchAndReplace(char *str, char *search, char *replace)
 
 void fillWifiHtmlTmpl(char **htmlCodeBuffer)
 {
-    char ssid[SSID_MAX_LEN];
-    char password[PASS_MAX_LEN];
+    char ssid[WIFI_SSID_MAX_LEN];
+    char password[WIFI_PASS_MAX_LEN];
     uint8_t ssidLen = 0;
     uint8_t passLen = 0;
 
@@ -82,5 +82,48 @@ void fillWifiHtmlTmpl(char **htmlCodeBuffer)
     else
     {
         *htmlCodeBuffer = searchAndReplace(*htmlCodeBuffer, "%002%", "%NOT SET%");
+    }
+}
+
+void fillMqttHtmlTmpl(char **htmlCodeBuffer)
+{
+    mqttSettings_t mqttSettings;
+    esp_err_t err = loadMqttSettings(&mqttSettings);
+
+    if (err != ESP_OK)
+    {
+        return;
+    }
+
+    //Fill in and replace the keys in the HTML template
+
+    if (mqttSettings.addressLen != 0)
+    {   
+        // Replace the address key with the stored address
+        *htmlCodeBuffer = searchAndReplace(*htmlCodeBuffer, "%001%", mqttSettings.address);
+    }
+    else
+    {
+        *htmlCodeBuffer = searchAndReplace(*htmlCodeBuffer, "%001%", "%NOT SET%");
+    }
+
+    if (mqttSettings.usernameLen != 0)
+    {   
+        // Replace the username key with the stored username
+        *htmlCodeBuffer = searchAndReplace(*htmlCodeBuffer, "%002%", mqttSettings.username);
+    }
+    else
+    {
+        *htmlCodeBuffer = searchAndReplace(*htmlCodeBuffer, "%002%", "%NOT SET%");
+    }
+
+    if (mqttSettings.passwordLen != 0)
+    {   
+        // Replace the password key with the stored password
+        *htmlCodeBuffer = searchAndReplace(*htmlCodeBuffer, "%003%", mqttSettings.password);
+    }
+    else
+    {
+        *htmlCodeBuffer = searchAndReplace(*htmlCodeBuffer, "%003%", "%NOT SET%");
     }
 }

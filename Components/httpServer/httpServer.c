@@ -15,12 +15,19 @@
 
 
 /* Constants */
-#define TAG                     "static_page"
-#define HTML_CONTENT_TYPE       "text/html"
-#define MAX_HTTP_RECV_BUFFER    1024 //512
-#define RESP_BUFFER             ( (SSID_MAX_LEN * 2) +  (PASS_MAX_LEN * 2) )
-#define ORIGIN_PAGE_LEN         20
-#define DATA_TYPE_LEN           20
+#define TAG                         "static_page"
+#define HTML_CONTENT_TYPE           "text/html"
+#define MAX_HTTP_RECV_BUFFER        1024 //512
+#define RESP_BUFFER                 ( (WIFI_SSID_MAX_LEN * 2) +  (WIFI_PASS_MAX_LEN * 2) )
+#define ORIGIN_PAGE_LEN             20
+#define DATA_TYPE_LEN               20
+#define ACTION_LEN                  30
+
+#define WIFI_ENCODED_SSID_MAX_LEN   (WIFI_SSID_MAX_LEN * 2)
+#define WIFI_ENCODED_PASS_MAX_LEN   (WIFI_PASS_MAX_LEN * 2)
+#define MQTT_ENCODED_ADDR_MAX_LEN   (MQTT_ADDR_MAX_LEN * 2)
+#define MQTT_ENCODED_UNAME_MAX_LEN  (MQTT_UNAME_MAX_LEN * 2)
+#define MQTT_ENCODED_PASS_MAX_LEN   (MQTT_PASS_MAX_LEN * 2)
 
 
 /* Get pointers to embedded HTML pages */
@@ -99,21 +106,17 @@ static httpd_config_t httpd_config = HTTPD_DEFAULT_CONFIG();
 void initHttpServer()
 {
     root_html_response = malloc((root_html_tmpl_end - root_html_tmpl_start));
-    
     saved_html_response = malloc((saved_page_html_tmpl_end - saved_page_html_tmpl_start));
-    mqtt_html_response = malloc((mqtt_settings_html_tmpl_end - mqtt_settings_html_tmpl_start));
     led_html_response = malloc((led_settings_html_tmpl_end - led_settings_html_tmpl_start));
 
-    if (root_html_response == NULL || saved_html_response == NULL || mqtt_html_response == NULL || led_html_response == NULL)
+    if (root_html_response == NULL || saved_html_response == NULL || led_html_response == NULL)
     {
         ESP_LOGE(TAG, "Unable to allocate memory for html responses");
         return;
     }
 
     memcpy(root_html_response, root_html_tmpl_start, (root_html_tmpl_end - root_html_tmpl_start));
-
     memcpy(saved_html_response, saved_page_html_tmpl_start, (saved_page_html_tmpl_end - saved_page_html_tmpl_start));
-    memcpy(mqtt_html_response, mqtt_settings_html_tmpl_start, (mqtt_settings_html_tmpl_end - mqtt_settings_html_tmpl_start));
     memcpy(led_html_response, led_settings_html_tmpl_start, (led_settings_html_tmpl_end - led_settings_html_tmpl_start));
     
 
@@ -162,6 +165,7 @@ static esp_err_t wifi_handler(httpd_req_t *req)
     }
     memcpy(wifi_html_response, wifi_settings_html_tmpl_start, (wifi_settings_html_tmpl_end - wifi_settings_html_tmpl_start));
 
+    // Fill in and replace the keys in the HTML template
     fillWifiHtmlTmpl(&wifi_html_response);
 
     // Prepare HTML response
@@ -176,9 +180,24 @@ static esp_err_t wifi_handler(httpd_req_t *req)
 /* MQTT URI handler */
 static esp_err_t mqtt_handler(httpd_req_t *req)
 {
+    // Allocate memory for the HTML template response
+    mqtt_html_response = malloc((mqtt_settings_html_tmpl_end - mqtt_settings_html_tmpl_start));
+    if (mqtt_html_response == NULL)
+    {
+        ESP_LOGE(TAG, "Unable to allocate memory for mqtt html response");
+        return ESP_FAIL;
+    }
+    memcpy(mqtt_html_response, mqtt_settings_html_tmpl_start, (mqtt_settings_html_tmpl_end - mqtt_settings_html_tmpl_start));
+
+    // Fill in and replace the keys in the HTML template
+    fillMqttHtmlTmpl(&mqtt_html_response);
+
     // Prepare HTML response
     httpd_resp_set_type(req, HTML_CONTENT_TYPE);
     httpd_resp_send(req, mqtt_html_response, strlen(mqtt_html_response));
+
+    free(mqtt_html_response);
+
     return ESP_OK;
 }
 
@@ -193,18 +212,14 @@ static esp_err_t led_handler(httpd_req_t *req)
 
 /* Save URI handler */
 static esp_err_t save_handler(httpd_req_t *req)
-{
-    char decodedSSID[SSID_MAX_LEN];
-    char decodedPass[PASS_MAX_LEN];
-    char ssid[SSID_MAX_LEN];
-    char password[PASS_MAX_LEN];
+{ 
     char oringinPage[ORIGIN_PAGE_LEN];
     char dataType[DATA_TYPE_LEN];
+    char action[ACTION_LEN];
 
-    memset(ssid, '\0', SSID_MAX_LEN);
-    memset(password, '\0', PASS_MAX_LEN);
-    memset(decodedSSID, '\0', SSID_MAX_LEN);
-    memset(decodedPass, '\0', PASS_MAX_LEN);
+    memset(oringinPage, '\0', ORIGIN_PAGE_LEN);
+    memset(dataType, '\0', DATA_TYPE_LEN);
+    memset(action, '\0', ACTION_LEN);
     
     if (strcmp(req->uri, "/") == 0)
     {
@@ -252,19 +267,29 @@ static esp_err_t save_handler(httpd_req_t *req)
         {
             if(strcmp(dataType, "credentials") == 0)
             {
+                char decodedSSID[WIFI_SSID_MAX_LEN];
+                char decodedPass[WIFI_PASS_MAX_LEN];
+                char encodedSSID[WIFI_ENCODED_SSID_MAX_LEN];
+                char encodedPassword[WIFI_ENCODED_PASS_MAX_LEN];
+
+                memset(encodedSSID, '\0', WIFI_ENCODED_SSID_MAX_LEN);
+                memset(encodedPassword, '\0', WIFI_ENCODED_PASS_MAX_LEN);
+                memset(decodedSSID, '\0', WIFI_SSID_MAX_LEN);
+                memset(decodedPass, '\0', WIFI_PASS_MAX_LEN);
+
                 // Get the SSID and password
-                if (httpd_query_key_value(buf, "ssid", ssid, SSID_MAX_LEN) != ESP_OK ||
-                    httpd_query_key_value(buf, "password", password, PASS_MAX_LEN) != ESP_OK)
+                if (httpd_query_key_value(buf, "ssid", encodedSSID, WIFI_ENCODED_SSID_MAX_LEN) != ESP_OK ||
+                    httpd_query_key_value(buf, "password", encodedPassword, WIFI_ENCODED_PASS_MAX_LEN) != ESP_OK)
                 {
                     httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parameters");
                     return ESP_FAIL;
                 }
 
-                ESP_LOGI(TAG, "Got (before decode):\nSSID: %s\nPASS: %s", ssid, password);
+                ESP_LOGI(TAG, "Got (before decode):\nSSID: %s\nPASS: %s", encodedSSID, encodedPassword);
 
                 //Decode the URLdecoded credentials
-                urlDecode(decodedSSID, ssid);
-                urlDecode(decodedPass, password);
+                urlDecode(decodedSSID, encodedSSID);
+                urlDecode(decodedPass, encodedPassword);
 
                 ESP_LOGI(TAG, "Got (after decode):\nSSID: %s\nPASS: %s", decodedSSID, decodedPass);
 
@@ -286,7 +311,100 @@ static esp_err_t save_handler(httpd_req_t *req)
         }
         else if (strcmp(oringinPage, "mqtt-settings") == 0)
         {
-            //TODO: Process MQTT settings
+            if (strcmp(dataType, "credentials") == 0)
+            {
+                mqttSettings_t mqttSettings;
+                char encodedAddress[MQTT_ENCODED_ADDR_MAX_LEN];
+                char encodedUsername[MQTT_ENCODED_UNAME_MAX_LEN];
+                char encodedPassword[MQTT_ENCODED_PASS_MAX_LEN];
+
+                memset(encodedAddress, '\0', MQTT_ENCODED_ADDR_MAX_LEN);
+                memset(encodedUsername, '\0', MQTT_ENCODED_UNAME_MAX_LEN);
+                memset(encodedPassword, '\0', MQTT_ENCODED_PASS_MAX_LEN);
+                memset(&mqttSettings, 0, sizeof(mqttSettings_t));
+
+                // Get the action
+                if (httpd_query_key_value(buf, "action", action, ACTION_LEN) != ESP_OK)
+                {
+                    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to retrieve action");
+                    return ESP_FAIL;
+                }
+
+                if (strcmp(action, "save_address") == 0)
+                {
+                    // Get the address
+                    if (httpd_query_key_value(buf, "address", encodedAddress, MQTT_ENCODED_ADDR_MAX_LEN) != ESP_OK)
+                    {
+                        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parameters");
+                        return ESP_FAIL;
+                    }
+
+                    //Decode the URLencoded credentials
+                    urlDecode(mqttSettings.address, encodedAddress);
+
+                    //Store the credentials
+                    if(storeMqttSettings(&mqttSettings) != ESP_OK)
+                    {
+                        ESP_LOGE(TAG, "Unable to store mqtt address");
+                        return ESP_FAIL;
+                    }
+                }
+                else if (strcmp(action, "save_credentials") == 0)
+                {
+                    // Get the username and password
+                    if (httpd_query_key_value(buf, "username", encodedUsername, MQTT_ENCODED_UNAME_MAX_LEN) != ESP_OK ||
+                        httpd_query_key_value(buf, "password", encodedPassword, MQTT_ENCODED_PASS_MAX_LEN) != ESP_OK)
+                    {
+                        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parameters");
+                        return ESP_FAIL;
+                    }
+
+                    //Decode the URLencoded credentials
+                    urlDecode(mqttSettings.username, encodedUsername);
+                    urlDecode(mqttSettings.password, encodedPassword);
+
+                    //Store the credentials
+                    if(storeMqttSettings(&mqttSettings) != ESP_OK)
+                    {
+                        ESP_LOGE(TAG, "Unable to store mqtt credentials");
+                        return ESP_FAIL;
+                    }
+                }
+                else if(strcmp(action, "save_all") == 0)
+                {
+                    // Get the address
+                    if (httpd_query_key_value(buf, "address", encodedAddress, MQTT_ENCODED_ADDR_MAX_LEN) != ESP_OK)
+                    {
+                        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parameters");
+                        return ESP_FAIL;
+                    }
+
+                    // Get the username and password
+                    if (httpd_query_key_value(buf, "username", encodedUsername, MQTT_ENCODED_UNAME_MAX_LEN) != ESP_OK ||
+                        httpd_query_key_value(buf, "password", encodedPassword, MQTT_ENCODED_PASS_MAX_LEN) != ESP_OK)
+                    {
+                        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parameters");
+                        return ESP_FAIL;
+                    }
+
+                    //Decode the URLencoded credentials
+                    urlDecode(mqttSettings.address, encodedAddress);
+                    urlDecode(mqttSettings.username, encodedUsername);
+                    urlDecode(mqttSettings.password, encodedPassword);
+
+                    //Store the credentials
+                    if(storeMqttSettings(&mqttSettings) != ESP_OK)
+                    {
+                        ESP_LOGE(TAG, "Unable to store mqtt credentials");
+                        return ESP_FAIL;
+                    }
+                }
+                else
+                {
+                    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid action");
+                    return ESP_FAIL;
+                }
+            }
 
             httpd_resp_send(req, saved_html_response, strlen(saved_html_response));
         }

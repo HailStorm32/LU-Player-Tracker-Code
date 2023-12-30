@@ -131,3 +131,150 @@ esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint
     nvs_close(nvsHandle);
     return ESP_OK;
 }
+
+esp_err_t storeMqttSettings(mqttSettings_t *mqttSettings)
+{
+    esp_err_t err;
+    nvs_handle_t nvsHandle;
+
+    if(mqttSettings == NULL) {
+        ESP_LOGE(TAG, "Given mqttSettings is NULL");
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    // Open NVS namespace
+    err = nvs_open(SETTINGS_NVS_NAMESPACE, NVS_READWRITE, &nvsHandle);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    // Write MQTT settings to NVS
+    if (strlen(mqttSettings->address) != 0)
+    {
+        // Write MQTT address to NVS
+        err = nvs_set_str(nvsHandle, "MQTT_addr", mqttSettings->address);
+        if (err != ESP_OK) {
+            nvs_close(nvsHandle);
+            return err;
+        }
+    }
+
+    if (strlen(mqttSettings->username) != 0)
+    {
+        // Write MQTT username to NVS
+        err = nvs_set_str(nvsHandle, "MQTT_uname", mqttSettings->username);
+        if (err != ESP_OK) {
+            nvs_close(nvsHandle);
+            return err;
+        }
+    }
+
+    if (strlen(mqttSettings->password) != 0)
+    {
+        // Write MQTT password to NVS
+        err = nvs_set_str(nvsHandle, "MQTT_pass", mqttSettings->password);
+        if (err != ESP_OK) {
+            nvs_close(nvsHandle);
+            return err;
+        }
+    }
+
+    // Commit the data to flash memory
+    err = nvs_commit(nvsHandle);
+    if (err != ESP_OK) {
+        nvs_close(nvsHandle);
+        return err;
+    }
+
+    // Close the NVS namespace handle
+    nvs_close(nvsHandle);
+    return ESP_OK;
+}
+
+esp_err_t loadMqttSettings(mqttSettings_t *mqttSettings)
+{
+    esp_err_t err;
+    nvs_handle_t nvsHandle;
+    size_t strLen = NULL;
+
+    if(mqttSettings == NULL) {
+        ESP_LOGE(TAG, "Given mqttSettings is NULL");
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    // Clear the mqttSettings struct
+    memset(mqttSettings, 0, sizeof(mqttSettings_t));
+
+    // Open NVS namespace 
+    err = nvs_open(SETTINGS_NVS_NAMESPACE, NVS_READONLY, &nvsHandle);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    // Get MQTT settings from from NVS
+
+    // Get broker address size, then get broker address value
+    if (( err = nvs_get_str(nvsHandle, "MQTT_addr", NULL, &strLen)) == ESP_OK)
+    {
+        mqttSettings->addressLen = strLen;
+
+        // Get address
+        nvs_get_str(nvsHandle, "MQTT_addr", mqttSettings->address, &strLen);
+    }
+    else if(err == ESP_ERR_NVS_NOT_FOUND)   
+    {
+        ESP_LOGI(TAG, "MQTT address in NVM not found");
+    }
+    else   
+    {
+        nvs_close(nvsHandle);
+        ESP_LOGE(TAG, "Failed to retrieve mqtt address from NVM");
+        //TODO: Handle and report the different error types
+        // https://docs.espressif.com/projects/esp-idf/en/v5.0/esp32s3/api-reference/storage/nvs_flash.html#_CPPv411nvs_get_str12nvs_handle_tPKcPcP6size_t:~:text=includes%20zero%20terminator.-,Returns,-ESP_OK%20if%20the
+        return err;
+    }
+
+    // Get username size, then get username value
+    if ((err = nvs_get_str(nvsHandle, "MQTT_uname", NULL, &strLen)) == ESP_OK)
+    {
+        mqttSettings->usernameLen = strLen;
+
+        // Get username
+        nvs_get_str(nvsHandle, "MQTT_uname", mqttSettings->username, &strLen);
+    }
+    else if(err == ESP_ERR_NVS_NOT_FOUND)   
+    {
+        ESP_LOGI(TAG, "MQTT username in NVM not found");
+    }
+    else   
+    {
+        nvs_close(nvsHandle);
+        ESP_LOGE(TAG, "Failed to retrieve mqtt username from NVM");
+        //TODO: Handle and report the different error types
+        // https://docs.espressif.com/projects/esp-idf/en/v5.0/esp32s3/api-reference/storage/nvs_flash.html#_CPPv411nvs_get_str12nvs_handle_tPKcPcP6size_t:~:text=includes%20zero%20terminator.-,Returns,-ESP_OK%20if%20the
+    }
+
+    // Get password size, then get password value   
+    if ((err = nvs_get_str(nvsHandle, "MQTT_pass", NULL, &strLen)) == ESP_OK)
+    {
+        mqttSettings->passwordLen = strLen;
+
+        // Get password
+        nvs_get_str(nvsHandle, "MQTT_pass", mqttSettings->password, &strLen);
+    }
+    else if(err == ESP_ERR_NVS_NOT_FOUND)   
+    {
+        ESP_LOGI(TAG, "MQTT password in NVM not found");
+    }
+    else   
+    {
+        nvs_close(nvsHandle);
+        ESP_LOGE(TAG, "Failed to retrieve mqtt password from NVM");
+        //TODO: Handle and report the different error types
+        // https://docs.espressif.com/projects/esp-idf/en/v5.0/esp32s3/api-reference/storage/nvs_flash.html#_CPPv411nvs_get_str12nvs_handle_tPKcPcP6size_t:~:text=includes%20zero%20terminator.-,Returns,-ESP_OK%20if%20the
+    }
+
+    // Close the NVS namespace handle
+    nvs_close(nvsHandle);
+    return ESP_OK;
+}

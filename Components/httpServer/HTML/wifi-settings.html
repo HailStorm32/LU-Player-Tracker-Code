@@ -64,6 +64,11 @@
             border: 1px solid #8c8a8a;
         }
 
+        .section_divider {
+            border-bottom: 3px solid #828282;
+            margin: 20px 0;
+        }
+
 
     </style>
 </head>
@@ -77,6 +82,8 @@
             <label for="saved-password">Password:</label>
             <input type="text" id="saved-password" name="saved-password" value="%002%" readonly>
         </div>
+
+        <div class="section_divider"></div>
 
         <form id="wifi-form" method="post" action="/save">
             <h1>Change WiFi Settings</h1>

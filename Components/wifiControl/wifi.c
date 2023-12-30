@@ -78,8 +78,8 @@ void initWifiSta(void)
     wifiEventGroup = xEventGroupCreate(); //Create and store the event group
 
     //Allocate and zero space for ssid and password
-    ssid = (char*)calloc(SSID_MAX_LEN, sizeof(char));
-    password = (char*)calloc(PASS_MAX_LEN, sizeof(char));
+    ssid = (char*)calloc(WIFI_SSID_MAX_LEN, sizeof(char));
+    password = (char*)calloc(WIFI_PASS_MAX_LEN, sizeof(char));
 
     if(ssid == NULL || password == NULL)
     {

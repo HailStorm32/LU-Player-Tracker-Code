@@ -1,11 +1,123 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Feature Not Implemented</title>
-    </head>
-    <body>
-        <h1>Feature Not Implemented</h1>
-        <p>We apologize for the inconvenience, but this feature has not been implemented yet.</p>
-        <a href="/"><button>Back to Main Menu</button></a>
-    </body>
+<head>
+    <title>MQTT Settings</title>
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px 0px #000000;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        label, input {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        button {
+            cursor: pointer;
+            background-color: blue;
+            color: white;
+            border: none;
+            padding: 10px;
+            text-align: center;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        #back-button {
+            background-color: grey;
+        }
+
+        #current-settings {
+            background-color: #e9e9e9;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        #current-settings h2 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        #saved-addr, #saved-uname, #saved-password {
+            background-color: #f0f0f0;
+            border: 1px solid #8c8a8a;
+        }
+
+        button[name="save_address"] {
+            margin-bottom: 20px; /* Adjust the margin as needed for visual space */
+        }
+
+        .divider {
+            border-bottom: 1px solid #ccc;
+            margin: 20px 0;
+        }
+
+        .section_divider {
+            border-bottom: 3px solid #828282;
+            margin: 20px 0;
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="current-settings">
+            <h2>Current MQTT Settings: </h2>
+            <label for="saved-addr">Broker Address:</label>
+            <input type="text" id="saved-addr" name="saved-addr" value="%001%" readonly>
+
+            <label for="saved-uname">User Name:</label>
+            <input type="text" id="saved-uname" name="saved-uname" value="%002%" readonly>
+
+            <label for="saved-password">Password:</label>
+            <input type="text" id="saved-password" name="saved-password" value="%003%" readonly>
+        </div>
+
+        <div class="section_divider"></div>
+
+        <h1>Change MQTT Settings</h1>
+        <form id="mqtt-form" method="post" action="/save">
+            <label for="address">Broker Address:</label>
+            <input type="text" id="address" name="address" placeholder="Enter Broker Address" maxlength="64">
+            <button type="submit" name="action" value="save_address">Save Address</button>
+            
+            <div class="divider"></div>
+
+            
+            <label for="username">Broker Username:</label>
+            <input type="text" id="username" name="username" placeholder="Enter Broker Username" maxlength="64">
+            
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" placeholder="Enter Password" maxlength="64">
+            
+            <button type="submit" name="action" value="save_credentials">Save Credentials</button>
+            <button type="submit" name="action" value="save_all">Save All</button>
+
+            <input type="hidden" name="origin_page" value="mqtt-settings"> <!-- This is a hidden input field that will be sent to the "server". It will be used to determine what page the data came from. -->
+            <input type="hidden" name="data_type" value="credentials"> <!-- This is a hidden input field that will be sent to the "server". It will be used to determine what type of data we need to process. -->
+        </form>
+
+        <a href="/">
+            <button id="back-button">Back to Main Page</button>
+        </a>
+    </div>
+</body>
 </html>
