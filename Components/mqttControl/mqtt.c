@@ -305,6 +305,7 @@ esp_err_t initMqttClient(void)
 
 	if((err = loadMqttSettings(&mqttSettings)) != ESP_OK)
 	{
+		ESP_LOGE(MQTT_LOG_TAG, "Loading MQTT settings failed");
 		return err;
 	}
 	else if(mqttSettings.addressLen == 0 || mqttSettings.usernameLen == 0 || mqttSettings.passwordLen == 0)

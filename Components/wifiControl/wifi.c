@@ -68,7 +68,7 @@ static void eventHandler(void* arg, esp_event_base_t eventBase, int32_t eventId,
 }
 
 //Initalize wifi into station mode
-void initWifiSta(void)
+esp_err_t initWifiSta(void)
 {    
     char* ssid;
     uint8_t ssidLen;
@@ -84,7 +84,7 @@ void initWifiSta(void)
     if(ssid == NULL || password == NULL)
     {
         ESP_LOGE(WIFI_CTRL_LOG_TAG, "Unable to allocate memory for SSID or PASSWORD");
-        return;
+        return ESP_ERR_NO_MEM;
     }
 
     if (!APran)
@@ -120,14 +120,14 @@ void initWifiSta(void)
     if(loadWifiCredentials(ssid, password, &ssidLen, &passLen) != ESP_OK)
     {
         ESP_LOGE(WIFI_CTRL_LOG_TAG, "Unable to load WIFI credentials");
-        return;
+        return ESP_ERR_NOT_FOUND;
     }
 
     //Dont proceed if the credentials are empty
     if(ssidLen == 0 || passLen == 0 )
     {
         ESP_LOGE(WIFI_CTRL_LOG_TAG, "Pulled empty credentials from storage");
-        return;
+        return ESP_FAIL;
     }
 
     //Create wifi config
@@ -180,6 +180,8 @@ void initWifiSta(void)
     {
         ESP_LOGE(WIFI_CTRL_LOG_TAG, "UNEXPECTED EVENT");
     }
+
+    return ESP_OK;
 }
 
 void initWifiAP()

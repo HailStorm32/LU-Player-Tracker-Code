@@ -8,7 +8,7 @@
 #define TAG                     "Flash_Storage"
 #define SETTINGS_NVS_NAMESPACE  "userSettings"
 
-void initFlashStorage()
+esp_err_t initFlashStorage()
 {
     // Initialize NVS
     esp_err_t err = nvs_flash_init();
@@ -41,6 +41,7 @@ void initFlashStorage()
     //     nvs_close(nvsHandle);
     // }
 
+    return ESP_OK;
 }
 
 esp_err_t storeWifiCredentials(char *ssid, char *password)
@@ -97,7 +98,7 @@ esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint
     // Read SSID and password from NVS
 
     //Get SSID size
-    if (nvs_get_str(nvsHandle, "WIFI_ssid", NULL, &strLen) == ESP_OK)
+    if ((err = nvs_get_str(nvsHandle, "WIFI_ssid", NULL, &strLen)) == ESP_OK)
     {
         *ssidLen = strLen;
 
@@ -127,7 +128,7 @@ esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint
 
 
     //Get password size
-    if (nvs_get_str(nvsHandle, "WIFI_pass", NULL, &strLen) == ESP_OK)
+    if ((err = nvs_get_str(nvsHandle, "WIFI_pass", NULL, &strLen)) == ESP_OK)
     {
         *passLen = strLen;
 

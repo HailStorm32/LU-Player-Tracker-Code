@@ -21,7 +21,7 @@ typedef struct
     uint8_t passwordLen;
 } mqttSettings_t;
 
-void initFlashStorage();
+esp_err_t initFlashStorage();
 
 esp_err_t storeWifiCredentials(char *ssid, char *password);
 

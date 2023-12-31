@@ -19,6 +19,8 @@
 
 int app_main(void)
 {
+    esp_err_t err = ESP_OK;
+
     esp_task_wdt_deinit();
     // // If the TWDT was not initialized automatically on startup, manually intialize it now
     // esp_task_wdt_config_t twdt_config = {
@@ -38,12 +40,19 @@ int app_main(void)
     esp_log_level_set("static_page", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
     esp_log_level_set("WIFI", ESP_LOG_DEBUG);  //ESP_LOG_DEBUG
 
-    initGPIO();
-    initLedControl();
-    initFlashStorage();
-
-    if(gpio_get_level(GPIO_MODE_BTN) == HIGH)
+    // Initialize GPIO, LED, and Flash Storage
+    if((err = initGPIO()) != ESP_OK || (err = initLedControl()) != ESP_OK || (err = initFlashStorage()) != ESP_OK)
     {
+        //TODO: Implement better error handling
+        ESP_ERROR_CHECK(err);
+    }
+
+    
+    // Initialize Wifi and MQTT, if either fails or the mode button is pressed, initialize AP mode and HTTP server and have the user configure the device
+    if((gpio_get_level(GPIO_MODE_BTN) == HIGH) || ((err = initWifiSta()) != ESP_OK || (err = initMqttClient()) != ESP_OK))
+    {
+        //TODO: Log the error
+
         changeSevenSegment(255, false);
         initWifiAP();
         initHttpServer();
@@ -52,9 +61,6 @@ int app_main(void)
             vTaskDelay(120);// TODO: Implement way for user to quit AP mode instead of forcing them to reboot
         }
     }
-    
-    initWifiSta();
-    initMqttClient();
 
     printf("This is a test\n\n This is a Test2\n\n");
     int test = 10;

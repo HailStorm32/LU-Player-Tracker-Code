@@ -61,9 +61,6 @@ void fillWifiHtmlTmpl(char **htmlCodeBuffer)
     {
         return;
     }
-    {
-        return;
-    }
     
     //Fill in and replace the keys in the HTML template
 

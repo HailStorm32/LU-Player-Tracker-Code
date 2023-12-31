@@ -4,7 +4,7 @@
 #define GPIO_OUTPUT_PIN_SEL ((1ULL<<GPIO_TO_MUX_A0) | (1ULL<<GPIO_TO_MUX_A1) | (1ULL<<GPIO_TO_MUX_A2) | (1ULL<<GPIO_DIG_SEL))
 #define GPIO_INPUT_PIN_SEL  (1ULL<<GPIO_MODE_BTN)
 
-int initGPIO()
+int initGPIO() //TODO: Convert to ESP error codes
 {
     gpio_config_t ioConf = {}; 
 

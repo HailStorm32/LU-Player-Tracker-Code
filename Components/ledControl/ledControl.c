@@ -59,7 +59,7 @@ const uint16_t auxWorldIDs[] = {
 
 const char* LED_CTRL_LOG_TAG = "LED_Control";
 
-int initLedControl()
+int initLedControl() //TODO: Convert to ESP error codes
 {
     //Set the array index for each world LED
     for(uint8_t ledIndex = 0; ledIndex < NUM_OF_LEDS; ledIndex++)
