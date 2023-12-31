@@ -26,6 +26,21 @@ void initFlashStorage()
         }
     ESP_ERROR_CHECK( err );
     }
+
+    // //Clear the namespace
+    // nvs_handle_t nvsHandle;
+    // err = nvs_open(SETTINGS_NVS_NAMESPACE, NVS_READWRITE, &nvsHandle);
+    // if (err != ESP_OK) {
+    //     ESP_LOGE(TAG, "Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+    // }
+    // else
+    // {
+    //     ESP_LOGI(TAG, "Clearing NVS namespace");
+    //     nvs_erase_all(nvsHandle);
+    //     nvs_commit(nvsHandle);
+    //     nvs_close(nvsHandle);
+    // }
+
 }
 
 esp_err_t storeWifiCredentials(char *ssid, char *password)
