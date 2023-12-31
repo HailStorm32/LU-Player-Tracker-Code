@@ -1,6 +1,5 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
-#include "nvs.h"
 #include "flashStorage.h"
 
 #include <string.h>
@@ -27,7 +26,7 @@ void initFlashStorage()
     ESP_ERROR_CHECK( err );
     }
 
-    // //Clear the namespace
+    // //Clear the namespace DEBUG ONLY
     // nvs_handle_t nvsHandle;
     // err = nvs_open(SETTINGS_NVS_NAMESPACE, NVS_READWRITE, &nvsHandle);
     // if (err != ESP_OK) {
@@ -83,7 +82,10 @@ esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint
     esp_err_t err;
     nvs_handle_t nvsHandle;
     size_t strLen = NULL;
+    bool allSettingsFound = true;
     
+    //NOTE: The function will return whatever values it was able to find, even if it was not able to find all of them
+    // Data validation should be done by the caller
 
     // Open NVS namespace 
     err = nvs_open(SETTINGS_NVS_NAMESPACE, NVS_READONLY, &nvsHandle);
@@ -107,6 +109,11 @@ esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint
 
         //Get SSID
         nvs_get_str(nvsHandle, "WIFI_ssid", ssid, &strLen);
+    }
+    else if(err == ESP_ERR_NVS_NOT_FOUND)   
+    {
+        ESP_LOGI(TAG, "SSID in NVM not found");
+        allSettingsFound = false;
     }
     else   
     {
@@ -133,6 +140,11 @@ esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint
         //Get password
         nvs_get_str(nvsHandle, "WIFI_pass", password, &strLen);
     }
+    else if(err == ESP_ERR_NVS_NOT_FOUND)   
+    {
+        ESP_LOGI(TAG, "Password in NVM not found");
+        allSettingsFound = false;
+    }
     else   
     {
         nvs_close(nvsHandle);
@@ -144,7 +156,15 @@ esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint
 
     // Close the NVS namespace handle
     nvs_close(nvsHandle);
-    return ESP_OK;
+    
+    if(!allSettingsFound)
+    {
+        return ESP_ERR_NVS_NOT_FOUND;
+    }
+    else
+    {
+        return ESP_OK;
+    }
 }
 
 esp_err_t storeMqttSettings(mqttSettings_t *mqttSettings)
@@ -211,6 +231,10 @@ esp_err_t loadMqttSettings(mqttSettings_t *mqttSettings)
     esp_err_t err;
     nvs_handle_t nvsHandle;
     size_t strLen = NULL;
+    bool allSettingsFound = true;
+
+    //NOTE: The function will return whatever values it was able to find, even if it was not able to find all of them
+    // Data validation should be done by the caller
 
     if(mqttSettings == NULL) {
         ESP_LOGE(TAG, "Given mqttSettings is NULL");
@@ -239,6 +263,7 @@ esp_err_t loadMqttSettings(mqttSettings_t *mqttSettings)
     else if(err == ESP_ERR_NVS_NOT_FOUND)   
     {
         ESP_LOGI(TAG, "MQTT address in NVM not found");
+        allSettingsFound = false;
     }
     else   
     {
@@ -260,6 +285,7 @@ esp_err_t loadMqttSettings(mqttSettings_t *mqttSettings)
     else if(err == ESP_ERR_NVS_NOT_FOUND)   
     {
         ESP_LOGI(TAG, "MQTT username in NVM not found");
+        allSettingsFound = false;
     }
     else   
     {
@@ -280,6 +306,7 @@ esp_err_t loadMqttSettings(mqttSettings_t *mqttSettings)
     else if(err == ESP_ERR_NVS_NOT_FOUND)   
     {
         ESP_LOGI(TAG, "MQTT password in NVM not found");
+        allSettingsFound = false;
     }
     else   
     {
@@ -291,5 +318,13 @@ esp_err_t loadMqttSettings(mqttSettings_t *mqttSettings)
 
     // Close the NVS namespace handle
     nvs_close(nvsHandle);
-    return ESP_OK;
+
+    if(!allSettingsFound)
+    {
+        return ESP_ERR_NVS_NOT_FOUND;
+    }
+    else
+    {
+        return ESP_OK;
+    }
 }
