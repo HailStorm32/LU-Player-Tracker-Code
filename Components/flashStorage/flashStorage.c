@@ -1,6 +1,7 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "flashStorage.h"
+#include "nvs.h"
 
 #include <string.h>
 
@@ -159,7 +160,7 @@ esp_err_t loadWifiCredentials(char *ssid, char *password, uint8_t* ssidLen, uint
     
     if(!allSettingsFound)
     {
-        return ESP_ERR_NVS_NOT_FOUND;
+        return ESP_ERR_NOT_FOUND;
     }
     else
     {
@@ -321,7 +322,7 @@ esp_err_t loadMqttSettings(mqttSettings_t *mqttSettings)
 
     if(!allSettingsFound)
     {
-        return ESP_ERR_NVS_NOT_FOUND;
+        return ESP_ERR_NOT_FOUND;
     }
     else
     {

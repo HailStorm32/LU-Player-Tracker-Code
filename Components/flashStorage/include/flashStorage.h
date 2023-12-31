@@ -2,7 +2,6 @@
 #define FLASH_STORAGE
 
 #include "esp_err.h"
-#include "nvs.h"
 
 #define WIFI_SSID_MAX_LEN           33 //Includes null terminator
 #define WIFI_PASS_MAX_LEN           65 //Includes null terminator
