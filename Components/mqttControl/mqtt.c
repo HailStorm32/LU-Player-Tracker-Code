@@ -8,6 +8,7 @@
 #include "ledControl.h"
 #include "esp_tls.h"
 #include "esp_wifi.h"
+#include "flashStorage.h"
 #include "../../credentials.h"
 
 
@@ -295,14 +296,29 @@ static void mqtt_event_handler(void* handlerArgs, esp_event_base_t base, int32_t
 	}
 }
 
-void initMqttClient(void)
+esp_err_t initMqttClient(void)
 {
+	esp_err_t err;
+
+	// Get MQTT settings from flash
+	mqttSettings_t mqttSettings;
+
+	if((err = loadMqttSettings(&mqttSettings)) != ESP_OK)
+	{
+		return err;
+	}
+	else if(mqttSettings.addressLen == 0 || mqttSettings.usernameLen == 0 || mqttSettings.passwordLen == 0)
+	{
+		ESP_LOGE(MQTT_LOG_TAG, "MQTT settings not valid");
+		return ESP_FAIL;
+	}
+
 	const esp_mqtt_client_config_t mqtt_cfg = {
-		.broker.address.uri = BROKER_ADDR,
+		.broker.address.uri = mqttSettings.address,
 		.credentials = {
-            .username = BROKER_UNAME,
+            .username = mqttSettings.username,
 			.authentication = {
-				.password = BROKER_PASS
+				.password = mqttSettings.password,
 			},
 		}
 	};
@@ -310,4 +326,6 @@ void initMqttClient(void)
 	mqttClient = esp_mqtt_client_init(&mqtt_cfg); //Initalize and create client
 	esp_mqtt_client_register_event(mqttClient, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL); //Create an event loop to listen for any mqtt event 
 	esp_mqtt_client_start(mqttClient); //Start the client
+
+	return ESP_OK;
 }
