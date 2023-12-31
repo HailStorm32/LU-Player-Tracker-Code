@@ -161,7 +161,7 @@ static esp_err_t wifi_handler(httpd_req_t *req)
     if (wifi_html_response == NULL)
     {
         ESP_LOGE(TAG, "Unable to allocate memory for wifi html response");
-        return ESP_FAIL;
+        return ESP_ERR_NO_MEM;
     }
     memcpy(wifi_html_response, wifi_settings_html_tmpl_start, (wifi_settings_html_tmpl_end - wifi_settings_html_tmpl_start));
 
@@ -185,7 +185,7 @@ static esp_err_t mqtt_handler(httpd_req_t *req)
     if (mqtt_html_response == NULL)
     {
         ESP_LOGE(TAG, "Unable to allocate memory for mqtt html response");
-        return ESP_FAIL;
+        return ESP_ERR_NO_MEM;
     }
     memcpy(mqtt_html_response, mqtt_settings_html_tmpl_start, (mqtt_settings_html_tmpl_end - mqtt_settings_html_tmpl_start));
 
