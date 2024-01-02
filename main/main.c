@@ -62,8 +62,6 @@ int app_main(void)
         }
     }
 
-    printf("This is a test\n\n This is a Test2\n\n");
-    int test = 10;
-    printf("%d", test);
+    printf("Boot successful\n");
     return 0;
 }
