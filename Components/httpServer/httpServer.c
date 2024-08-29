@@ -29,6 +29,9 @@
 #define MQTT_ENCODED_UNAME_MAX_LEN  (MQTT_UNAME_MAX_LEN * 2)
 #define MQTT_ENCODED_PASS_MAX_LEN   (MQTT_PASS_MAX_LEN * 2)
 
+#define WIFI_PAGE_TOTAL_DATA_SIZE   (WIFI_SSID_MAX_LEN + WIFI_PASS_MAX_LEN)
+#define MQTT_PAGE_TOTAL_DATA_SIZE   (MQTT_ADDR_MAX_LEN + MQTT_UNAME_MAX_LEN + MQTT_PASS_MAX_LEN)
+
 
 /* Get pointers to embedded HTML pages */
 extern const uint8_t root_html_tmpl_start[] asm("_binary_root_html_start");
@@ -107,19 +110,16 @@ void initHttpServer()
 {
     root_html_response = malloc((root_html_tmpl_end - root_html_tmpl_start));
     saved_html_response = malloc((saved_page_html_tmpl_end - saved_page_html_tmpl_start));
-    led_html_response = malloc((led_settings_html_tmpl_end - led_settings_html_tmpl_start));
 
-    if (root_html_response == NULL || saved_html_response == NULL || led_html_response == NULL)
+    if (root_html_response == NULL || saved_html_response == NULL)
     {
-        ESP_LOGE(TAG, "Unable to allocate memory for html responses");
+        ESP_LOGE(TAG, "Unable to allocate memory for html and/or save responses");
         return;
     }
 
     memcpy(root_html_response, root_html_tmpl_start, (root_html_tmpl_end - root_html_tmpl_start));
     memcpy(saved_html_response, saved_page_html_tmpl_start, (saved_page_html_tmpl_end - saved_page_html_tmpl_start));
-    memcpy(led_html_response, led_settings_html_tmpl_start, (led_settings_html_tmpl_end - led_settings_html_tmpl_start));
     
-
     // ESP_LOG_BUFFER_HEXDUMP(TAG, root_html_response, strlen(root_html_response)+8, ESP_LOG_DEBUG);
     // ESP_LOGI(TAG, "Starting Addr: 0x%x", (int)root_html_tmpl_start);
     // ESP_LOGI(TAG, "End Addr: 0x%x", (int)root_html_tmpl_end);
@@ -157,10 +157,11 @@ static esp_err_t root_handler(httpd_req_t *req)
 static esp_err_t wifi_handler(httpd_req_t *req)
 {
     // Allocate memory for the HTML template response
-    wifi_html_response = malloc((wifi_settings_html_tmpl_end - wifi_settings_html_tmpl_start));
+    wifi_html_response = malloc((wifi_settings_html_tmpl_end - wifi_settings_html_tmpl_start) + WIFI_PAGE_TOTAL_DATA_SIZE);
     if (wifi_html_response == NULL)
     {
         ESP_LOGE(TAG, "Unable to allocate memory for wifi html response");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Server unable to allocate memory");
         return ESP_ERR_NO_MEM;
     }
     memcpy(wifi_html_response, wifi_settings_html_tmpl_start, (wifi_settings_html_tmpl_end - wifi_settings_html_tmpl_start));
@@ -181,10 +182,11 @@ static esp_err_t wifi_handler(httpd_req_t *req)
 static esp_err_t mqtt_handler(httpd_req_t *req)
 {
     // Allocate memory for the HTML template response
-    mqtt_html_response = malloc((mqtt_settings_html_tmpl_end - mqtt_settings_html_tmpl_start));
+    mqtt_html_response = malloc((mqtt_settings_html_tmpl_end - mqtt_settings_html_tmpl_start) + MQTT_PAGE_TOTAL_DATA_SIZE);
     if (mqtt_html_response == NULL)
     {
         ESP_LOGE(TAG, "Unable to allocate memory for mqtt html response");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Server unable to allocate memory");
         return ESP_ERR_NO_MEM;
     }
     memcpy(mqtt_html_response, mqtt_settings_html_tmpl_start, (mqtt_settings_html_tmpl_end - mqtt_settings_html_tmpl_start));
@@ -204,9 +206,22 @@ static esp_err_t mqtt_handler(httpd_req_t *req)
 /* LED URI handler */
 static esp_err_t led_handler(httpd_req_t *req)
 {
+    // Allocate memory for the HTML template response
+    led_html_response = malloc((led_settings_html_tmpl_end - led_settings_html_tmpl_start));
+    if (led_html_response == NULL)
+    {
+        ESP_LOGE(TAG, "Unable to allocate memory for led html response");
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Server unable to allocate memory");
+        return ESP_ERR_NO_MEM;
+    }
+    memcpy(led_html_response, led_settings_html_tmpl_start, (led_settings_html_tmpl_end - led_settings_html_tmpl_start));
+
     // Prepare HTML response
     httpd_resp_set_type(req, HTML_CONTENT_TYPE);
     httpd_resp_send(req, led_html_response, strlen(led_html_response));
+
+    free(led_html_response);
+
     return ESP_OK;
 }
 
