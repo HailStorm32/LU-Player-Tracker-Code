@@ -18,7 +18,7 @@
 #define TAG                         "static_page"
 #define HTML_CONTENT_TYPE           "text/html"
 //MAX header legnth set in menuconfig//
-#define RESP_BUFFER                 ( (WIFI_SSID_MAX_LEN * 2) +  (WIFI_PASS_MAX_LEN * 2) )
+#define RESP_BUFFER_SIZE            1024
 #define ORIGIN_PAGE_LEN             20
 #define DATA_TYPE_LEN               20
 #define ACTION_LEN                  30
@@ -231,6 +231,7 @@ static esp_err_t save_handler(httpd_req_t *req)
     char oringinPage[ORIGIN_PAGE_LEN];
     char dataType[DATA_TYPE_LEN];
     char action[ACTION_LEN];
+    char *buf;
 
     memset(oringinPage, '\0', ORIGIN_PAGE_LEN);
     memset(dataType, '\0', DATA_TYPE_LEN);
@@ -242,30 +243,38 @@ static esp_err_t save_handler(httpd_req_t *req)
     }
     else if (strcmp(req->uri, "/save") == 0)
     {
-        char buf[RESP_BUFFER];
-        memset(buf, '\0', RESP_BUFFER);
+        // Allocate memory for the request buffer
+        buf = calloc(RESP_BUFFER_SIZE, sizeof(char));
+        if (buf == NULL)
+        {
+            ESP_LOGE(TAG, "Unable to allocate memory for request buffer");
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Server unable to allocate memory");
+            return ESP_ERR_NO_MEM;
+        }
 
         int ret, remaining = req->content_len;
         while (remaining > 0)
         {
-            ret = httpd_req_recv(req, buf, fmin(remaining, sizeof(buf)));
+            ret = httpd_req_recv(req, buf, fmin(remaining, RESP_BUFFER_SIZE));
             if (ret <= 0)
             {
                 if (ret == HTTPD_SOCK_ERR_TIMEOUT)
                 {
                     httpd_resp_send_408(req);
                 }
+                free(buf);
                 return ESP_FAIL;
             }
             remaining -= ret;
         }
 
-        ESP_LOG_BUFFER_HEXDUMP(TAG, buf, RESP_BUFFER, ESP_LOG_DEBUG);
+        ESP_LOG_BUFFER_HEXDUMP(TAG, buf, RESP_BUFFER_SIZE, ESP_LOG_DEBUG);
 
         // Get the origin page
         if (httpd_query_key_value(buf, "origin_page", oringinPage, ORIGIN_PAGE_LEN) != ESP_OK)
         {
             httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to retrieve origin");
+            free(buf);
             return ESP_FAIL;
         }
 
@@ -273,6 +282,7 @@ static esp_err_t save_handler(httpd_req_t *req)
         if (httpd_query_key_value(buf, "data_type", dataType, DATA_TYPE_LEN) != ESP_OK)
         {
             httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to retrieve data type");
+            free(buf);
             return ESP_FAIL;
         }
 
@@ -297,6 +307,7 @@ static esp_err_t save_handler(httpd_req_t *req)
                     httpd_query_key_value(buf, "password", encodedPassword, WIFI_ENCODED_PASS_MAX_LEN) != ESP_OK)
                 {
                     httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parameters");
+                    free(buf);
                     return ESP_FAIL;
                 }
 
@@ -312,6 +323,7 @@ static esp_err_t save_handler(httpd_req_t *req)
                 if(storeWifiCredentials(decodedSSID, decodedPass) != ESP_OK)
                 {
                     ESP_LOGE(TAG, "Unable to store ssid and/or password");
+                    free(buf);
                     return ESP_FAIL;
                 }
 
@@ -320,6 +332,7 @@ static esp_err_t save_handler(httpd_req_t *req)
             else
             {
                 httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid data type");
+                free(buf);
                 return ESP_FAIL;
             }
             
@@ -342,6 +355,7 @@ static esp_err_t save_handler(httpd_req_t *req)
                 if (httpd_query_key_value(buf, "action", action, ACTION_LEN) != ESP_OK)
                 {
                     httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to retrieve action");
+                    free(buf);
                     return ESP_FAIL;
                 }
 
@@ -351,6 +365,7 @@ static esp_err_t save_handler(httpd_req_t *req)
                     if (httpd_query_key_value(buf, "address", encodedAddress, MQTT_ENCODED_ADDR_MAX_LEN) != ESP_OK)
                     {
                         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parameters");
+                        free(buf);
                         return ESP_FAIL;
                     }
 
@@ -361,6 +376,7 @@ static esp_err_t save_handler(httpd_req_t *req)
                     if(storeMqttSettings(&mqttSettings) != ESP_OK)
                     {
                         ESP_LOGE(TAG, "Unable to store mqtt address");
+                        free(buf);
                         return ESP_FAIL;
                     }
                 }
@@ -371,6 +387,7 @@ static esp_err_t save_handler(httpd_req_t *req)
                         httpd_query_key_value(buf, "password", encodedPassword, MQTT_ENCODED_PASS_MAX_LEN) != ESP_OK)
                     {
                         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parameters");
+                        free(buf);
                         return ESP_FAIL;
                     }
 
@@ -382,6 +399,7 @@ static esp_err_t save_handler(httpd_req_t *req)
                     if(storeMqttSettings(&mqttSettings) != ESP_OK)
                     {
                         ESP_LOGE(TAG, "Unable to store mqtt credentials");
+                        free(buf);
                         return ESP_FAIL;
                     }
                 }
@@ -391,6 +409,7 @@ static esp_err_t save_handler(httpd_req_t *req)
                     if (httpd_query_key_value(buf, "address", encodedAddress, MQTT_ENCODED_ADDR_MAX_LEN) != ESP_OK)
                     {
                         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parameters");
+                        free(buf);
                         return ESP_FAIL;
                     }
 
@@ -399,6 +418,7 @@ static esp_err_t save_handler(httpd_req_t *req)
                         httpd_query_key_value(buf, "password", encodedPassword, MQTT_ENCODED_PASS_MAX_LEN) != ESP_OK)
                     {
                         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid parameters");
+                        free(buf);
                         return ESP_FAIL;
                     }
 
@@ -411,12 +431,14 @@ static esp_err_t save_handler(httpd_req_t *req)
                     if(storeMqttSettings(&mqttSettings) != ESP_OK)
                     {
                         ESP_LOGE(TAG, "Unable to store mqtt credentials");
+                        free(buf);
                         return ESP_FAIL;
                     }
                 }
                 else
                 {
                     httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid action");
+                    free(buf);
                     return ESP_FAIL;
                 }
             }
@@ -432,8 +454,11 @@ static esp_err_t save_handler(httpd_req_t *req)
         else
         {
             httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid origin page");
+            free(buf);
             return ESP_FAIL;
         }
+
+        free(buf);
     }
 
     return ESP_OK;

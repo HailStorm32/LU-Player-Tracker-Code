@@ -1,11 +1,158 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Feature Not Implemented</title>
-    </head>
-    <body>
-        <h1>Feature Not Implemented</h1>
-        <p>We apologize for the inconvenience, but this feature has not been implemented yet.</p>
-        <a href="/"><button>Back to Main Menu</button></a>
-    </body>
+<head>
+    <title>LED Configuration</title>
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px 0px #000000;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        .led {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            margin: 5px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid #000000;
+        }
+
+        button {
+            cursor: pointer;
+            background-color: blue;
+            color: white;
+            border: none;
+            padding: 10px;
+            text-align: center;
+            border-radius: 5px;
+            margin-right: 5px;
+        }
+
+        #back-button {
+            background-color: grey;
+        }
+
+        #reset-button {
+            background-color: red;
+        }
+
+        .section_divider {
+            border-bottom: 3px solid #828282;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Configure LED Colors and Brightness</h1>
+
+        <form id="led-config-form" method="post" action="/save">
+            <div id="leds-container">
+                <h2>Select Colors and Brightness:</h2>
+
+                <!-- LED Color and Brightness Configuration -->
+                <label for="veColor">VE Color:</label>
+                <input type="color" id="veColor" name="veColor" value="#ff0000">
+                <label for="veBrightness">Brightness:</label>
+                <input type="range" id="veBrightness" name="veBrightness" min="0" max="100" value="100"><br>
+
+                <label for="agColor">AG Color:</label>
+                <input type="color" id="agColor" name="agColor" value="#00ff00">
+                <label for="agBrightness">Brightness:</label>
+                <input type="range" id="agBrightness" name="agBrightness" min="0" max="100" value="100"><br>
+
+                <label for="nsColor">NS Color:</label>
+                <input type="color" id="nsColor" name="nsColor" value="#0000ff">
+                <label for="nsBrightness">Brightness:</label>
+                <input type="range" id="nsBrightness" name="nsBrightness" min="0" max="100" value="100"><br>
+
+                <label for="petCoveColor">Pet Cove Color:</label>
+                <input type="color" id="petCoveColor" name="petCoveColor" value="#ffff00">
+                <label for="petCoveBrightness">Brightness:</label>
+                <input type="range" id="petCoveBrightness" name="petCoveBrightness" min="0" max="100" value="100"><br>
+
+                <label for="gfColor">GF Color:</label>
+                <input type="color" id="gfColor" name="gfColor" value="#ff00ff">
+                <label for="gfBrightness">Brightness:</label>
+                <input type="range" id="gfBrightness" name="gfBrightness" min="0" max="100" value="100"><br>
+
+                <label for="fbColor">FB Color:</label>
+                <input type="color" id="fbColor" name="fbColor" value="#00ffff">
+                <label for="fbBrightness">Brightness:</label>
+                <input type="range" id="fbBrightness" name="fbBrightness" min="0" max="100" value="100"><br>
+
+                <label for="lClubColor">L Club Color:</label>
+                <input type="color" id="lClubColor" name="lClubColor" value="#ffa500">
+                <label for="lClubBrightness">Brightness:</label>
+                <input type="range" id="lClubBrightness" name="lClubBrightness" min="0" max="100" value="100"><br>
+
+                <label for="ntColor">NT Color:</label>
+                <input type="color" id="ntColor" name="ntColor" value="#8b4513">
+                <label for="ntBrightness">Brightness:</label>
+                <input type="range" id="ntBrightness" name="ntBrightness" min="0" max="100" value="100"><br>
+
+                <label for="nijagoColor">Nijago Color:</label>
+                <input type="color" id="nijagoColor" name="nijagoColor" value="#4b0082">
+                <label for="nijagoBrightness">Brightness:</label>
+                <input type="range" id="nijagoBrightness" name="nijagoBrightness" min="0" max="100" value="100"><br>
+
+                <label for="cpColor">CP Color:</label>
+                <input type="color" id="cpColor" name="cpColor" value="#ffc0cb">
+                <label for="cpBrightness">Brightness:</label>
+                <input type="range" id="cpBrightness" name="cpBrightness" min="0" max="100" value="100"><br>
+
+                <label for="portabelloColor">Portabello Color:</label>
+                <input type="color" id="portabelloColor" name="portabelloColor" value="#d3d3d3">
+                <label for="portabelloBrightness">Brightness:</label>
+                <input type="range" id="portabelloBrightness" name="portabelloBrightness" min="0" max="100" value="100"><br>
+
+                <label for="moonbaseColor">Moonbase Color:</label>
+                <input type="color" id="moonbaseColor" name="moonbaseColor" value="#a9a9a9">
+                <label for="moonbaseBrightness">Brightness:</label>
+                <input type="range" id="moonbaseBrightness" name="moonbaseBrightness" min="0" max="100" value="100"><br>
+
+                <label for="robotCityColor">Robot City Color:</label>
+                <input type="color" id="robotCityColor" name="robotCityColor" value="#add8e6">
+                <label for="robotCityBrightness">Brightness:</label>
+                <input type="range" id="robotCityBrightness" name="robotCityBrightness" min="0" max="100" value="100"><br>
+
+                <label for="deepFreezeColor">Deep Freeze Color:</label>
+                <input type="color" id="deepFreezeColor" name="deepFreezeColor" value="#f08080">
+                <label for="deepFreezeBrightness">Brightness:</label>
+                <input type="range" id="deepFreezeBrightness" name="deepFreezeBrightness" min="0" max="100" value="100"><br>
+
+                <label for="starbaseColor">Starbase Color:</label>
+                <input type="color" id="starbaseColor" name="starbaseColor" value="#556b2f">
+                <label for="starbaseBrightness">Brightness:</label>
+                <input type="range" id="starbaseBrightness" name="starbaseBrightness" min="0" max="100" value="100"><br>
+
+                <div class="section_divider"></div>
+                <button type="submit">Save LED Configuration</button>
+                <button type="reset" id="reset-button">Reset</button>
+            </div>
+            <input type="hidden" name="origin_page" value="led-settings"> <!-- This is a hidden input field that will be sent to the "server". It will be used to determine what page the data came from. -->
+            <input type="hidden" name="data_type" value="settings"> <!-- This is a hidden input field that will be sent to the "server". It will be used to determine what type of data we need to process. -->
+        </form>
+
+        <a href="/">
+            <button id="back-button">Back to Main Page</button>
+        </a>
+    </div>
+</body>
 </html>
