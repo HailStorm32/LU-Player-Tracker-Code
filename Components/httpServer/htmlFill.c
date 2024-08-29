@@ -1,8 +1,11 @@
+#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
 #include <ctype.h>
 #include <string.h>
 
+#include "esp_log.h"
 #include "htmlFill.h"
 #include "flashStorage.h"
+#include "nvs_flash.h"
 
 
 #define TEMPLATE_KEY_LEN    5
@@ -57,7 +60,7 @@ void fillWifiHtmlTmpl(char **htmlCodeBuffer)
 
     esp_err_t err = loadWifiCredentials(ssid, password, &ssidLen, &passLen);
 
-    if (err != ESP_OK && err != ESP_ERR_NOT_FOUND) // We dont care if the settings are not found, we will just use the defaults
+    if (err != ESP_OK && ( err != ESP_ERR_NOT_FOUND && err != ESP_ERR_NVS_NOT_FOUND )) // We dont care if the settings are not found, we will just use the defaults
     {
         return;
     }
@@ -90,7 +93,7 @@ void fillMqttHtmlTmpl(char **htmlCodeBuffer)
     mqttSettings_t mqttSettings;
     esp_err_t err = loadMqttSettings(&mqttSettings);
 
-    if (err != ESP_OK && err != ESP_ERR_NOT_FOUND) // We dont care if the settings are not found, we will just use the defaults
+    if (err != ESP_OK && ( err != ESP_ERR_NOT_FOUND && err != ESP_ERR_NVS_NOT_FOUND )) // We dont care if the settings are not found, we will just use the defaults
     {
         return;
     }

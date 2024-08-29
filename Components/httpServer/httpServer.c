@@ -17,7 +17,7 @@
 /* Constants */
 #define TAG                         "static_page"
 #define HTML_CONTENT_TYPE           "text/html"
-#define MAX_HTTP_RECV_BUFFER        1024 //512
+//MAX header legnth set in menuconfig//
 #define RESP_BUFFER                 ( (WIFI_SSID_MAX_LEN * 2) +  (WIFI_PASS_MAX_LEN * 2) )
 #define ORIGIN_PAGE_LEN             20
 #define DATA_TYPE_LEN               20
