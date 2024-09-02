@@ -9,13 +9,13 @@
 #include "iPixel.h"
 #include "esp_err.h"
 #include "esp_task_wdt.h"
+#include "freertos/semphr.h"
 #include "sevenSegmentControl.h"
 
 #define LED_UPDATE_TASK_STACK_SIZE 4096 //Bytes 2048
 
 #define NUM_OF_SUPORTED_WRLD_IDS 34 //All main worlds, minigames, side worlds, and 1 catch all for an unknown world ID
 
-#define NUM_OF_LEDS 15
 #define RMT_LED_STRIP_RESOLUTION_HZ 10000000 // 10MHz resolution, 1 tick = 0.1us
 #define RMT_LED_STRIP_GPIO_NUM      9
 
@@ -33,20 +33,9 @@ uint8_t led_strip_pixels[NUM_OF_LEDS * 3];
 
 QueueHandle_t mqttJsonQueue;
 
-struct worldLed
-{
-    uint8_t red;
-    uint8_t green;
-    uint8_t blue;
-    uint8_t ledArrayIndexStart;
-}veColor, agColor, nsColor, petCoveColor, gfColor, fbColor, lClubColor, 
-    ntColor, nijagoColor, cpColor, portabelloColor, moonbaseColor, robotCityColor, deepFreezeColor, starbaseColor;
+worldLed_t worldLedStructArray[NUM_OF_LEDS]; //Array of world LED structs
 
-struct worldLed* worldLedStructArray[NUM_OF_LEDS] = {&veColor, &agColor, &petCoveColor, &gfColor, &fbColor, &nsColor, &lClubColor, 
-        &ntColor, &nijagoColor, &cpColor, &portabelloColor, &moonbaseColor, &robotCityColor, &deepFreezeColor, &starbaseColor};
-
-enum WRLD_INDEX {VE, AG, PC, GF, FV, NS, LC, NT, NINJA, CP, PORT, MOON, ROBOT, DEEP, STAR};
-
+SemaphoreHandle_t ledSemaphore;
 
 #define MASTER_WRLD_COLOR_RED 18
 #define MASTER_WRLD_COLOR_GREEN 55
@@ -61,115 +50,75 @@ const char* LED_CTRL_LOG_TAG = "LED_Control";
 
 int initLedControl() //TODO: Convert to ESP error codes
 {
+    //Create semaphore
+    if((ledSemaphore = xSemaphoreCreateMutex()) == NULL)
+    {
+        ESP_LOGE(LED_CTRL_LOG_TAG, "ERROR: Unable to create ledSemaphore");
+        return 1;
+    }
+
     //Set the array index for each world LED
     for(uint8_t ledIndex = 0; ledIndex < NUM_OF_LEDS; ledIndex++)
     {
-        worldLedStructArray[ledIndex]->ledArrayIndexStart = ledIndex * 3;
+        worldLedStructArray[ledIndex].ledArrayIndexStart = ledIndex * 3;
     }
     
     //World LED options
     if (UNIQUE_WORLD_COLORS)
     {
         //Venture explore
-        float veBrightness = .5;
-        veColor.red = 18 * veBrightness;
-        veColor.green = 55 * veBrightness;
-        veColor.blue = 201 * veBrightness;
+        setLedColorSingle(VE, 18, 55, 201, .5);
 
         //Avant Gardens
-        float agBrightness = .5;
-        agColor.red = 245 * agBrightness;
-        agColor.green = 72 * agBrightness;
-        agColor.blue = 24 * agBrightness;
+        setLedColorSingle(AG, 245, 72, 24, .5);
         
         //Pet Cove
-        float petCoveBrightness = .5;
-        petCoveColor.red = 22 * petCoveBrightness;
-        petCoveColor.green = 186 * petCoveBrightness;
-        petCoveColor.blue = 123 * petCoveBrightness;
+        setLedColorSingle(PC, 22, 186, 123, .5);
 
         //Gnarled Forest
-        float gfBrightness = .5;
-        gfColor.red = 91 * gfBrightness;
-        gfColor.green = 186 * gfBrightness;
-        gfColor.blue = 22 * gfBrightness;
+        setLedColorSingle(GF, 91, 186, 22, .5);
 
         //Forbidden Valley
-        float fvBrightness = .5;
-        fbColor.red = 230 * fvBrightness;
-        fbColor.green = 48 * fvBrightness;
-        fbColor.blue = 48 * fvBrightness;
+        setLedColorSingle(FV, 230, 48, 48, .5);
         
         //Nimbus Station
-        float nsBrightness = .5;
-        nsColor.red = 18 * nsBrightness;
-        nsColor.green = 55 * nsBrightness;
-        nsColor.blue = 201 * nsBrightness;
+        setLedColorSingle(NS, 18, 55, 201, .5);
 
         //Club Station Alpha
-        float lClubBrightness = .5;
-        lClubColor.red = 18 * lClubBrightness;
-        lClubColor.green = 55 * lClubBrightness;
-        lClubColor.blue = 201 * lClubBrightness;
+        setLedColorSingle(LC, 18, 55, 201, .5);
 
         //Nexus Tower
-        float ntBrightness = .5;
-        ntColor.red = 40 * ntBrightness;
-        ntColor.green = 222 * ntBrightness;
-        ntColor.blue = 216 * ntBrightness;
+        setLedColorSingle(NT, 40, 222, 216, .5);
 
         //Ninjago
-        float ninjagoBrightness = .5;
-        nijagoColor.red = 186 * ninjagoBrightness;
-        nijagoColor.green = 24 * ninjagoBrightness;
-        nijagoColor.blue = 245 * ninjagoBrightness;
+        setLedColorSingle(NINJA, 186, 24, 245, .5);
 
         //Crux Prime
-        float cpBrightness = .5;
-        cpColor.red = 79 * cpBrightness;
-        cpColor.green = 39 * cpBrightness;
-        cpColor.blue = 227 * cpBrightness;
+        setLedColorSingle(CP, 79, 39, 227, .5);
         
         //Portabello
-        float portabelloBrightness = .5;
-        portabelloColor.red = 173 * portabelloBrightness;
-        portabelloColor.green = 29 * portabelloBrightness;
-        portabelloColor.blue = 133 * portabelloBrightness;
+        setLedColorSingle(PORT, 173, 29, 133, .5);
 
         //Moonbase
-        float moonbaseBrightness = .5;
-        moonbaseColor.red = 107 * moonbaseBrightness;
-        moonbaseColor.green = 106 * moonbaseBrightness;
-        moonbaseColor.blue = 107 * moonbaseBrightness;
+        setLedColorSingle(MOON, 107, 106, 107, .5);
 
         //Robot City
-        float robotCityBrightness = .5;
-        robotCityColor.red = 247 * robotCityBrightness;
-        robotCityColor.green = 248 * robotCityBrightness;
-        robotCityColor.blue = 250 * robotCityBrightness;
+        setLedColorSingle(ROBOT, 247, 248, 250, .5);
 
         //Deep Freeze
-        float deepFreezeBrightness = .5;
-        deepFreezeColor.red = 61 * deepFreezeBrightness;
-        deepFreezeColor.green = 113 * deepFreezeBrightness;
-        deepFreezeColor.blue = 245 * deepFreezeBrightness;
+        setLedColorSingle(DEEP, 61, 113, 245, .5);
 
         //Starbase 3001
-        float starbaseBrightness = .5;
-        starbaseColor.red = 18 * starbaseBrightness;
-        starbaseColor.green = 55 * starbaseBrightness;
-        starbaseColor.blue = 201 * starbaseBrightness;
-        
-
+        setLedColorSingle(STAR, 18, 55, 201, .5);
     }
     else
     {
         //Set all world LEDs to the same color
         for (uint8_t ledIndex = 0; ledIndex < NUM_OF_LEDS; ledIndex++)
         {
-            worldLedStructArray[ledIndex]->red = MASTER_WRLD_COLOR_RED * MASTER_BRIGHTNESS;
-            worldLedStructArray[ledIndex]->green = MASTER_WRLD_COLOR_GREEN * MASTER_BRIGHTNESS;
-            worldLedStructArray[ledIndex]->blue = MASTER_WRLD_COLOR_BLUE * MASTER_BRIGHTNESS;
+            worldLedStructArray[ledIndex].red = MASTER_WRLD_COLOR_RED * MASTER_BRIGHTNESS;
+            worldLedStructArray[ledIndex].green = MASTER_WRLD_COLOR_GREEN * MASTER_BRIGHTNESS;
+            worldLedStructArray[ledIndex].blue = MASTER_WRLD_COLOR_BLUE * MASTER_BRIGHTNESS;
         }
     }
 
@@ -328,6 +277,7 @@ void ledUpdateTask()
                 totalUniversePop += worldPop->valueint;
 
                 //Update each world LED
+                xSemaphoreTake(ledSemaphore, portMAX_DELAY);
                 switch (atoi(worldID->string))
                 {
                 case 1000: //Venture Explorer
@@ -337,16 +287,16 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         //Turn on world LED
-                        led_strip_pixels[worldLedStructArray[VE]->ledArrayIndexStart + 0] = worldLedStructArray[VE]->green;
-                        led_strip_pixels[worldLedStructArray[VE]->ledArrayIndexStart + 1] = worldLedStructArray[VE]->red;
-                        led_strip_pixels[worldLedStructArray[VE]->ledArrayIndexStart + 2] = worldLedStructArray[VE]->blue;
+                        led_strip_pixels[worldLedStructArray[VE].ledArrayIndexStart + 0] = worldLedStructArray[VE].green;
+                        led_strip_pixels[worldLedStructArray[VE].ledArrayIndexStart + 1] = worldLedStructArray[VE].red;
+                        led_strip_pixels[worldLedStructArray[VE].ledArrayIndexStart + 2] = worldLedStructArray[VE].blue;
                     }
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[VE]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[VE]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[VE]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[VE].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[VE].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[VE].ledArrayIndexStart + 2] = LED_OFF;
                     } */
                     break;
                 case 1100: case 1101: case 1102: case 1001: case 1150: case 1151: //Avant Gardens, AG Survival, Spider Queen Battle, Return to VE, Block Yard, Avant Grove
@@ -356,9 +306,9 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         // Turn on world LED
-                        led_strip_pixels[worldLedStructArray[AG]->ledArrayIndexStart + 0] = worldLedStructArray[AG]->green;
-                        led_strip_pixels[worldLedStructArray[AG]->ledArrayIndexStart + 1] = worldLedStructArray[AG]->red;
-                        led_strip_pixels[worldLedStructArray[AG]->ledArrayIndexStart + 2] = worldLedStructArray[AG]->blue;
+                        led_strip_pixels[worldLedStructArray[AG].ledArrayIndexStart + 0] = worldLedStructArray[AG].green;
+                        led_strip_pixels[worldLedStructArray[AG].ledArrayIndexStart + 1] = worldLedStructArray[AG].red;
+                        led_strip_pixels[worldLedStructArray[AG].ledArrayIndexStart + 2] = worldLedStructArray[AG].blue;
 
                         //Update the aux world indicator if its an aux world
                         if(isAuxWorld(atoi(worldID->string)))
@@ -369,9 +319,9 @@ void ledUpdateTask()
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[AG]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[AG]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[AG]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[AG].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[AG].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[AG].ledArrayIndexStart + 2] = LED_OFF;
 
                     } */
                     break;
@@ -382,9 +332,9 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         // Turn on world LED
-                        led_strip_pixels[worldLedStructArray[NS]->ledArrayIndexStart + 0] = worldLedStructArray[NS]->green;
-                        led_strip_pixels[worldLedStructArray[NS]->ledArrayIndexStart + 1] = worldLedStructArray[NS]->red;
-                        led_strip_pixels[worldLedStructArray[NS]->ledArrayIndexStart + 2] = worldLedStructArray[NS]->blue;
+                        led_strip_pixels[worldLedStructArray[NS].ledArrayIndexStart + 0] = worldLedStructArray[NS].green;
+                        led_strip_pixels[worldLedStructArray[NS].ledArrayIndexStart + 1] = worldLedStructArray[NS].red;
+                        led_strip_pixels[worldLedStructArray[NS].ledArrayIndexStart + 2] = worldLedStructArray[NS].blue;
 
                         //Update the aux world indicator if its an aux world
                         if(isAuxWorld(atoi(worldID->string)))
@@ -395,9 +345,9 @@ void ledUpdateTask()
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[NS]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[NS]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[NS]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NS].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NS].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NS].ledArrayIndexStart + 2] = LED_OFF;
 
                     } */
                     break;
@@ -408,16 +358,16 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         // Turn on world LED
-                        led_strip_pixels[worldLedStructArray[PC]->ledArrayIndexStart + 0] = worldLedStructArray[PC]->green;
-                        led_strip_pixels[worldLedStructArray[PC]->ledArrayIndexStart + 1] = worldLedStructArray[PC]->red;
-                        led_strip_pixels[worldLedStructArray[PC]->ledArrayIndexStart + 2] = worldLedStructArray[PC]->blue;
+                        led_strip_pixels[worldLedStructArray[PC].ledArrayIndexStart + 0] = worldLedStructArray[PC].green;
+                        led_strip_pixels[worldLedStructArray[PC].ledArrayIndexStart + 1] = worldLedStructArray[PC].red;
+                        led_strip_pixels[worldLedStructArray[PC].ledArrayIndexStart + 2] = worldLedStructArray[PC].blue;
                     }
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[PC]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[PC]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[PC]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[PC].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[PC].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[PC].ledArrayIndexStart + 2] = LED_OFF;
                     } */
                     break;
                 case 1300: case 1302: case 1303: case 1350: //Gnarled Forest, Cannon Cove, Keelhaul Canyon, Chantey Shantey
@@ -427,9 +377,9 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         // Turn on world LED
-                        led_strip_pixels[worldLedStructArray[GF]->ledArrayIndexStart + 0] = worldLedStructArray[GF]->green;
-                        led_strip_pixels[worldLedStructArray[GF]->ledArrayIndexStart + 1] = worldLedStructArray[GF]->red;
-                        led_strip_pixels[worldLedStructArray[GF]->ledArrayIndexStart + 2] = worldLedStructArray[GF]->blue;
+                        led_strip_pixels[worldLedStructArray[GF].ledArrayIndexStart + 0] = worldLedStructArray[GF].green;
+                        led_strip_pixels[worldLedStructArray[GF].ledArrayIndexStart + 1] = worldLedStructArray[GF].red;
+                        led_strip_pixels[worldLedStructArray[GF].ledArrayIndexStart + 2] = worldLedStructArray[GF].blue;
 
                         //Update the aux world indicator if its an aux world
                         if(isAuxWorld(atoi(worldID->string)))
@@ -440,9 +390,9 @@ void ledUpdateTask()
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[GF]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[GF]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[GF]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[GF].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[GF].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[GF].ledArrayIndexStart + 2] = LED_OFF;
                     } */
                     break;
                 case 1400: case 1402: case 1403: case 1450: //Forbidden Valley, FV Dragon, Dragonmaw Chasm, Raven Bluff
@@ -452,9 +402,9 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         // Turn on world LED
-                        led_strip_pixels[worldLedStructArray[FV]->ledArrayIndexStart + 0] = worldLedStructArray[FV]->green;
-                        led_strip_pixels[worldLedStructArray[FV]->ledArrayIndexStart + 1] = worldLedStructArray[FV]->red;
-                        led_strip_pixels[worldLedStructArray[FV]->ledArrayIndexStart + 2] = worldLedStructArray[FV]->blue;
+                        led_strip_pixels[worldLedStructArray[FV].ledArrayIndexStart + 0] = worldLedStructArray[FV].green;
+                        led_strip_pixels[worldLedStructArray[FV].ledArrayIndexStart + 1] = worldLedStructArray[FV].red;
+                        led_strip_pixels[worldLedStructArray[FV].ledArrayIndexStart + 2] = worldLedStructArray[FV].blue;
 
 
                         //Update the aux world indicator if its an aux world
@@ -466,9 +416,9 @@ void ledUpdateTask()
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[FV]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[FV]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[FV]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[FV].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[FV].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[FV].ledArrayIndexStart + 2] = LED_OFF;
                     } */
                     break;
                 case 1600: //Starbase 3001
@@ -478,16 +428,16 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         // Turn on world LED
-                        led_strip_pixels[worldLedStructArray[STAR]->ledArrayIndexStart + 0] = worldLedStructArray[STAR]->green;
-                        led_strip_pixels[worldLedStructArray[STAR]->ledArrayIndexStart + 1] = worldLedStructArray[STAR]->red;
-                        led_strip_pixels[worldLedStructArray[STAR]->ledArrayIndexStart + 2] = worldLedStructArray[STAR]->blue;
+                        led_strip_pixels[worldLedStructArray[STAR].ledArrayIndexStart + 0] = worldLedStructArray[STAR].green;
+                        led_strip_pixels[worldLedStructArray[STAR].ledArrayIndexStart + 1] = worldLedStructArray[STAR].red;
+                        led_strip_pixels[worldLedStructArray[STAR].ledArrayIndexStart + 2] = worldLedStructArray[STAR].blue;
                     }
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[STAR]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[STAR]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[STAR]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[STAR].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[STAR].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[STAR].ledArrayIndexStart + 2] = LED_OFF;
                     } */
                     break;
                 case 1601: //Deep Freeze
@@ -497,16 +447,16 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         // Turn on world LED
-                        led_strip_pixels[worldLedStructArray[DEEP]->ledArrayIndexStart + 0] = worldLedStructArray[DEEP]->green;
-                        led_strip_pixels[worldLedStructArray[DEEP]->ledArrayIndexStart + 1] = worldLedStructArray[DEEP]->red;
-                        led_strip_pixels[worldLedStructArray[DEEP]->ledArrayIndexStart + 2] = worldLedStructArray[DEEP]->blue;
+                        led_strip_pixels[worldLedStructArray[DEEP].ledArrayIndexStart + 0] = worldLedStructArray[DEEP].green;
+                        led_strip_pixels[worldLedStructArray[DEEP].ledArrayIndexStart + 1] = worldLedStructArray[DEEP].red;
+                        led_strip_pixels[worldLedStructArray[DEEP].ledArrayIndexStart + 2] = worldLedStructArray[DEEP].blue;
                     }
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[DEEP]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[DEEP]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[DEEP]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[DEEP].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[DEEP].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[DEEP].ledArrayIndexStart + 2] = LED_OFF;
                     } */
                     break;
                 case 1602: //Robot City
@@ -516,16 +466,16 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         // Turn on world LED
-                        led_strip_pixels[worldLedStructArray[ROBOT]->ledArrayIndexStart + 0] = worldLedStructArray[ROBOT]->green;
-                        led_strip_pixels[worldLedStructArray[ROBOT]->ledArrayIndexStart + 1] = worldLedStructArray[ROBOT]->red;
-                        led_strip_pixels[worldLedStructArray[ROBOT]->ledArrayIndexStart + 2] = worldLedStructArray[ROBOT]->blue;
+                        led_strip_pixels[worldLedStructArray[ROBOT].ledArrayIndexStart + 0] = worldLedStructArray[ROBOT].green;
+                        led_strip_pixels[worldLedStructArray[ROBOT].ledArrayIndexStart + 1] = worldLedStructArray[ROBOT].red;
+                        led_strip_pixels[worldLedStructArray[ROBOT].ledArrayIndexStart + 2] = worldLedStructArray[ROBOT].blue;
                     }
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[ROBOT]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[ROBOT]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[ROBOT]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[ROBOT].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[ROBOT].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[ROBOT].ledArrayIndexStart + 2] = LED_OFF;
                     } */
                     break;
                 case 1603: //Moon Base
@@ -535,16 +485,16 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         // Turn on world LED
-                        led_strip_pixels[worldLedStructArray[MOON]->ledArrayIndexStart + 0] = worldLedStructArray[MOON]->green;
-                        led_strip_pixels[worldLedStructArray[MOON]->ledArrayIndexStart + 1] = worldLedStructArray[MOON]->red;
-                        led_strip_pixels[worldLedStructArray[MOON]->ledArrayIndexStart + 2] = worldLedStructArray[MOON]->blue;
+                        led_strip_pixels[worldLedStructArray[MOON].ledArrayIndexStart + 0] = worldLedStructArray[MOON].green;
+                        led_strip_pixels[worldLedStructArray[MOON].ledArrayIndexStart + 1] = worldLedStructArray[MOON].red;
+                        led_strip_pixels[worldLedStructArray[MOON].ledArrayIndexStart + 2] = worldLedStructArray[MOON].blue;
                     }
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[MOON]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[MOON]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[MOON]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[MOON].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[MOON].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[MOON].ledArrayIndexStart + 2] = LED_OFF;
                     } */
                     break;
                 case 1604: //Portabello
@@ -554,16 +504,16 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         // Turn on world LED
-                        led_strip_pixels[worldLedStructArray[PORT]->ledArrayIndexStart + 0] = worldLedStructArray[PORT]->green;
-                        led_strip_pixels[worldLedStructArray[PORT]->ledArrayIndexStart + 1] = worldLedStructArray[PORT]->red;
-                        led_strip_pixels[worldLedStructArray[PORT]->ledArrayIndexStart + 2] = worldLedStructArray[PORT]->blue;
+                        led_strip_pixels[worldLedStructArray[PORT].ledArrayIndexStart + 0] = worldLedStructArray[PORT].green;
+                        led_strip_pixels[worldLedStructArray[PORT].ledArrayIndexStart + 1] = worldLedStructArray[PORT].red;
+                        led_strip_pixels[worldLedStructArray[PORT].ledArrayIndexStart + 2] = worldLedStructArray[PORT].blue;
                     }
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[PORT]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[PORT]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[PORT]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[PORT].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[PORT].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[PORT].ledArrayIndexStart + 2] = LED_OFF;
                     } */
                     break;
                 case 1700: //LEGO Club (Club Station Alpha)
@@ -573,16 +523,16 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         // Turn on world LED
-                        led_strip_pixels[worldLedStructArray[LC]->ledArrayIndexStart + 0] = worldLedStructArray[LC]->green;
-                        led_strip_pixels[worldLedStructArray[LC]->ledArrayIndexStart + 1] = worldLedStructArray[LC]->red;
-                        led_strip_pixels[worldLedStructArray[LC]->ledArrayIndexStart + 2] = worldLedStructArray[LC]->blue;
+                        led_strip_pixels[worldLedStructArray[LC].ledArrayIndexStart + 0] = worldLedStructArray[LC].green;
+                        led_strip_pixels[worldLedStructArray[LC].ledArrayIndexStart + 1] = worldLedStructArray[LC].red;
+                        led_strip_pixels[worldLedStructArray[LC].ledArrayIndexStart + 2] = worldLedStructArray[LC].blue;
                     }
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[LC]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[LC]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[LC]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[LC].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[LC].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[LC].ledArrayIndexStart + 2] = LED_OFF;
                     } */
                     break;
                 case 1800: //Crux Prime
@@ -592,16 +542,16 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         // Turn on world LED
-                        led_strip_pixels[worldLedStructArray[CP]->ledArrayIndexStart + 0] = worldLedStructArray[CP]->green;
-                        led_strip_pixels[worldLedStructArray[CP]->ledArrayIndexStart + 1] = worldLedStructArray[CP]->red;
-                        led_strip_pixels[worldLedStructArray[CP]->ledArrayIndexStart + 2] = worldLedStructArray[CP]->blue;
+                        led_strip_pixels[worldLedStructArray[CP].ledArrayIndexStart + 0] = worldLedStructArray[CP].green;
+                        led_strip_pixels[worldLedStructArray[CP].ledArrayIndexStart + 1] = worldLedStructArray[CP].red;
+                        led_strip_pixels[worldLedStructArray[CP].ledArrayIndexStart + 2] = worldLedStructArray[CP].blue;
                     }
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[CP]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[CP]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[CP]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[CP].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[CP].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[CP].ledArrayIndexStart + 2] = LED_OFF;
                     } */
                     break;
                 case 1900: //Nexus Tower
@@ -611,16 +561,16 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         // Turn on world LED
-                        led_strip_pixels[worldLedStructArray[NT]->ledArrayIndexStart + 0] = worldLedStructArray[NT]->green;
-                        led_strip_pixels[worldLedStructArray[NT]->ledArrayIndexStart + 1] = worldLedStructArray[NT]->red;
-                        led_strip_pixels[worldLedStructArray[NT]->ledArrayIndexStart + 2] = worldLedStructArray[NT]->blue;
+                        led_strip_pixels[worldLedStructArray[NT].ledArrayIndexStart + 0] = worldLedStructArray[NT].green;
+                        led_strip_pixels[worldLedStructArray[NT].ledArrayIndexStart + 1] = worldLedStructArray[NT].red;
+                        led_strip_pixels[worldLedStructArray[NT].ledArrayIndexStart + 2] = worldLedStructArray[NT].blue;
                     }
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[NT]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[NT]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[NT]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NT].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NT].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NT].ledArrayIndexStart + 2] = LED_OFF;
                     } */
                     break;
                 case 2000: case 2001: //Ninjago, Frakjaw Battle
@@ -630,9 +580,9 @@ void ledUpdateTask()
                     if(worldPop->valueint > 0)
                     {
                         // Turn on world LED
-                        led_strip_pixels[worldLedStructArray[NINJA]->ledArrayIndexStart + 0] = worldLedStructArray[NINJA]->green;
-                        led_strip_pixels[worldLedStructArray[NINJA]->ledArrayIndexStart + 1] = worldLedStructArray[NINJA]->red;
-                        led_strip_pixels[worldLedStructArray[NINJA]->ledArrayIndexStart + 2] = worldLedStructArray[NINJA]->blue;
+                        led_strip_pixels[worldLedStructArray[NINJA].ledArrayIndexStart + 0] = worldLedStructArray[NINJA].green;
+                        led_strip_pixels[worldLedStructArray[NINJA].ledArrayIndexStart + 1] = worldLedStructArray[NINJA].red;
+                        led_strip_pixels[worldLedStructArray[NINJA].ledArrayIndexStart + 2] = worldLedStructArray[NINJA].blue;
 
                         //Update the aux world indicator if its an aux world
                         if(isAuxWorld(atoi(worldID->string)))
@@ -643,9 +593,9 @@ void ledUpdateTask()
                     /* else
                     {
                         // Turn off world LED
-                        led_strip_pixels[worldLedStructArray[NINJA]->ledArrayIndexStart + 0] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[NINJA]->ledArrayIndexStart + 1] = LED_OFF;
-                        led_strip_pixels[worldLedStructArray[NINJA]->ledArrayIndexStart + 2] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NINJA].ledArrayIndexStart + 0] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NINJA].ledArrayIndexStart + 1] = LED_OFF;
+                        led_strip_pixels[worldLedStructArray[NINJA].ledArrayIndexStart + 2] = LED_OFF;
                     } */
                     break;
                 
@@ -653,6 +603,7 @@ void ledUpdateTask()
                     ESP_LOGI(LED_CTRL_LOG_TAG, "Unsupported World ID, no LED to update, worldID triggered: %s", worldID->string);
                     break;
                 }
+                xSemaphoreGive(ledSemaphore);
             }
             
             //Update LEDs
@@ -682,4 +633,34 @@ void ledUpdateTask()
     
     //If we for whatever reason exit the loop, we need to close the task
     vTaskDelete(NULL);
+}
+
+void setLedColorSingle(const uint8_t worldIndex, const uint8_t red, const uint8_t green, const uint8_t blue, const float brightness)
+{
+    xSemaphoreTake(ledSemaphore, portMAX_DELAY);
+
+    worldLedStructArray[worldIndex].red = red * brightness;
+    worldLedStructArray[worldIndex].green = green * brightness;
+    worldLedStructArray[worldIndex].blue = blue * brightness;
+    worldLedStructArray[worldIndex].brightness = brightness;
+
+    xSemaphoreGive(ledSemaphore);
+}
+
+void setLedColorAll(const worldLed_t* worldLedArray)
+{
+    xSemaphoreTake(ledSemaphore, portMAX_DELAY);
+
+    memcpy(worldLedStructArray, worldLedArray, sizeof(worldLedStructArray));
+
+    xSemaphoreGive(ledSemaphore);
+}
+
+void getLedColorAll(worldLed_t* worldLedArray)
+{
+    xSemaphoreTake(ledSemaphore, portMAX_DELAY);
+
+    memcpy(worldLedArray, worldLedStructArray, sizeof(worldLedStructArray));
+
+    xSemaphoreGive(ledSemaphore);
 }
